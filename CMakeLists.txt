@@ -8,19 +8,19 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_VULKAN_STATIC ON CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-add_subdirectory(external/glfw)
+add_subdirectory(ext/glfw)
 
 # Disable SPIRV-Cross tests and exceptions, force build as a static library.
 set(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS ON CACHE BOOL "" FORCE)
 set(SPIRV_CROSS_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
 set(SPIRV_CROSS_STATIC ON CACHE BOOL "" FORCE)
-add_subdirectory(external/SPIRV-Cross)
+add_subdirectory(ext/SPIRV-Cross)
 
 # Disable FTL Tests, Benchmarks and enable C++17 Standard.
 set(FTL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(FTL_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
 set(FTL_CPP_17 ON CACHE BOOL "" FORCE)
-add_subdirectory(external/FiberTaskingLib)
+add_subdirectory(ext/FiberTaskingLib)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -76,7 +76,7 @@ target_compile_options(Quartz PUBLIC $<$<BOOL:${MSVC}>:/EHsc>)
 
 target_include_directories(Quartz PUBLIC
     src
-    external/VulkanMemoryAllocator/src)
+    ext/VulkanMemoryAllocator/src)
 
 target_link_libraries(Quartz PUBLIC
     ftl
