@@ -1,0 +1,17 @@
+#version 460
+
+layout (location = 0) in vec3 ivertex;
+layout (location = 1) in vec3 icolor;
+
+layout (location = 0) out vec3 color;
+
+layout (set = 0, binding = 0)
+uniform Camera {
+    mat4 projection;
+    mat4 view;
+};
+
+void main() {
+    gl_Position = projection * view * vec4(ivertex, 1.0);
+    color = icolor;
+}
