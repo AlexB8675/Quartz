@@ -49,6 +49,7 @@ namespace qz::gfx {
         Swapchain::destroy(context, renderer.swapchain);
 
         for (std::size_t i = 0; i < meta::in_flight; ++i) {
+            CommandBuffer::destroy(context, renderer.gfx_cmds[i]);
             vkDestroySemaphore(context.device, renderer.img_ready[i], nullptr);
             vkDestroySemaphore(context.device, renderer.gfx_done[i], nullptr);
             vkDestroyFence(context.device, renderer.cmd_wait[i], nullptr);

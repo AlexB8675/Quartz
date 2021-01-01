@@ -14,6 +14,11 @@ namespace qz::gfx {
     struct StaticBuffer;
     struct StaticMesh;
     class Queue;
+    struct DescriptorBinding;
+    template <size_t>
+    class DescriptorSet;
+    template <size_t>
+    class Buffer;
 } // namespace qz::gfx
 
 namespace qz::meta {

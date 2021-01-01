@@ -29,6 +29,7 @@ namespace qz::gfx {
 
     class CommandBuffer {
         const RenderPass* _active_pass;
+        const Pipeline* _active_pipeline;
         VkCommandBuffer _handle;
         VkCommandPool _pool;
     public:
@@ -49,6 +50,7 @@ namespace qz::gfx {
         CommandBuffer& set_scissor(meta::scissor_tag_t) noexcept;
         CommandBuffer& set_scissor(VkRect2D) noexcept;
         CommandBuffer& bind_pipeline(const Pipeline&) noexcept;
+        CommandBuffer& bind_descriptor_set(const DescriptorSet<1>&) noexcept;
         CommandBuffer& bind_vertex_buffer(const StaticBuffer&) noexcept;
         CommandBuffer& bind_index_buffer(const StaticBuffer&) noexcept;
         CommandBuffer& bind_static_mesh(const StaticMesh&) noexcept;

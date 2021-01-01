@@ -1,5 +1,7 @@
 #pragma once
 
+#include <qz/util/macros.hpp>
+
 #include <type_traits>
 #include <algorithm>
 #include <cstdint>
@@ -53,7 +55,6 @@ namespace qz::gfx {
             ClearColor _color;
             ClearDepth _depth;
         };
-
         Type _type;
     };
 } // namespace qz::gfx

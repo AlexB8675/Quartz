@@ -1,13 +1,24 @@
+#include <qz/gfx/descriptor_set.hpp>
 #include <qz/gfx/render_pass.hpp>
 #include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/pipeline.hpp>
 #include <qz/gfx/renderer.hpp>
 #include <qz/gfx/context.hpp>
+#include <qz/gfx/buffer.hpp>
 #include <qz/gfx/window.hpp>
 #include <qz/gfx/assets.hpp>
 #include <qz/gfx/queue.hpp>
 
 #include <qz/meta/constants.hpp>
+
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+struct Camera {
+    glm::mat4 projection;
+    glm::mat4 view;
+};
 
 int main() {
     using namespace qz;
@@ -86,8 +97,14 @@ int main() {
         }
     });
 
-    double delta_time = 0;
-    double last_frame = 0;
+    Camera camera{
+        glm::mat4(1.0f),
+        glm::mat4(1.0f),
+    };
+    auto set = gfx::DescriptorSet<>::allocate(context, pipeline.set(0));
+    auto buffer = gfx::Buffer<>::allocate(context, meta::uniform_buffer, sizeof(Camera));
+
+    double delta_time = 0, last_frame = 0;
     while (!window.should_close()) {
         auto [command_buffer, frame] = gfx::acquire_next_frame(renderer, context);
 
@@ -95,12 +112,16 @@ int main() {
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
+        buffer[frame.index].write(&camera, sizeof(Camera));
+        gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["Camera"], buffer[frame.index]);
+
         command_buffer
             .begin()
             .begin_render_pass(render_pass, 0)
             .set_viewport(meta::full_viewport)
             .set_scissor(meta::full_scissor)
-            .bind_pipeline(pipeline);
+            .bind_pipeline(pipeline)
+            .bind_descriptor_set(set[frame.index]);
 
         if (assets::is_ready(triangle)) {
             command_buffer
@@ -144,6 +165,8 @@ int main() {
     context.graphics->wait_idle();
     assets::free_all_resources(context);
 
+    gfx::DescriptorSet<>::destroy(context, set);
+    gfx::Buffer<>::destroy(context, buffer);
     gfx::Pipeline::destroy(context, pipeline);
     gfx::RenderPass::destroy(context, render_pass);
 

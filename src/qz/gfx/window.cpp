@@ -17,7 +17,7 @@ namespace qz::gfx {
         glfwWindowHint(GLFW_RESIZABLE, false);
 
         auto window = glfwCreateWindow(width, height, title, nullptr, nullptr);
-        qz_assert(window, "Failed to create window.");
+        qz_assert(window, "failed to create window.");
 
         return {
             window,

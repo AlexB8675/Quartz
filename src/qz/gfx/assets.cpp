@@ -1,5 +1,5 @@
-#include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/static_buffer.hpp>
+#include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/assets.hpp>
 
 #include <algorithm>
@@ -26,21 +26,21 @@ namespace qz::assets {
     template <>
     qz_nodiscard gfx::StaticMesh& from_handle(meta::Handle<gfx::StaticMesh> handle) noexcept {
         std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
-        qz_assert(0 <= handle.index && handle.index < assets<gfx::StaticMesh>.size(), "Invalid mesh handle");
+        qz_assert(0 <= handle.index && handle.index < assets<gfx::StaticMesh>.size(), "invalid mesh handle");
         return assets<gfx::StaticMesh>[handle.index].first;
     }
 
     template <>
     qz_nodiscard bool is_ready(meta::Handle<gfx::StaticMesh> handle) noexcept {
         std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
-        qz_assert(0 <= handle.index && handle.index < assets<gfx::StaticMesh>.size(), "Invalid mesh handle");
+        qz_assert(0 <= handle.index && handle.index < assets<gfx::StaticMesh>.size(), "invalid mesh handle");
         return assets<gfx::StaticMesh>[handle.index].second;
     }
 
     template <>
     void finalize(meta::Handle<gfx::StaticMesh> handle, gfx::StaticMesh&& data) noexcept {
         std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
-        qz_assert(0 <= handle.index && handle.index < assets<gfx::StaticMesh>.size(), "Invalid mesh handle");
+        qz_assert(0 <= handle.index && handle.index < assets<gfx::StaticMesh>.size(), "invalid mesh handle");
         assets<gfx::StaticMesh>[handle.index] = {
             data, true
         };

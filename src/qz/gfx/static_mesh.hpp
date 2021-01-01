@@ -14,11 +14,9 @@ namespace qz::gfx {
             std::vector<float> geometry;
             std::vector<std::uint32_t> indices;
         };
-
-        qz_nodiscard static meta::Handle<StaticMesh> request(const Context&, StaticMesh::CreateInfo&&) noexcept;
-
         StaticBuffer geometry;
         StaticBuffer indices;
-    };
 
+        qz_nodiscard static meta::Handle<StaticMesh> request(const Context&, StaticMesh::CreateInfo&&) noexcept;
+    };
 } // namespace qz::gfx

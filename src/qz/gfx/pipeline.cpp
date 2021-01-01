@@ -15,21 +15,12 @@
 namespace qz::gfx {
     qz_nodiscard static std::vector<char> load_spirv_code(const char* path) noexcept {
         std::ifstream file(path, std::ios::ate | std::ios::binary);
-        qz_assert(file.is_open(), "Failed to open file");
+        qz_assert(file.is_open(), "failed to open file");
 
         std::vector<char> spirv(file.tellg());
         file.seekg(0, std::ios::beg);
         file.read(spirv.data(), spirv.size());
         return spirv;
-    }
-
-    qz_nodiscard Pipeline Pipeline::from_raw(VkPipeline handle, VkPipelineLayout layout, DescriptorSetLayout&& descriptors) noexcept {
-        Pipeline pipeline{};
-        pipeline._handle = handle;
-        pipeline._layout = layout;
-        pipeline._descriptors = std::move(descriptors);
-
-        return pipeline;
     }
 
     qz_nodiscard Pipeline Pipeline::create(const Context& context, Renderer& renderer, CreateInfo&& info) noexcept {
@@ -42,6 +33,7 @@ namespace qz::gfx {
         pipeline_stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         pipeline_stages[1].pName = "main";
 
+        DescriptorTypes descriptor_types;
         std::vector<std::uint32_t> vertex_input_locations;
         std::map<std::size_t, DescriptorLayout> set_layout;
         { // Vertex shader.
@@ -59,12 +51,14 @@ namespace qz::gfx {
                 const auto set_idx = compiler.get_decoration(uniform_buffer.id, spv::DecorationDescriptorSet);
                 const auto binding_idx = compiler.get_decoration(uniform_buffer.id, spv::DecorationBinding);
 
-                set_layout[set_idx].push_back({
-                    .index = binding_idx,
-                    .count = 1,
-                    .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .stage = VK_SHADER_STAGE_VERTEX_BIT
-                });
+                set_layout[set_idx].push_back(
+                    descriptor_types[uniform_buffer.name] = {
+                        .name = uniform_buffer.name,
+                        .index = binding_idx,
+                        .count = 1,
+                        .type  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        .stage = VK_SHADER_STAGE_VERTEX_BIT
+                    });
             }
 
             vertex_input_locations.reserve(resources.stage_inputs.size());
@@ -115,12 +109,14 @@ namespace qz::gfx {
                     it->stage |= VK_SHADER_STAGE_FRAGMENT_BIT;
                 } else {
                     layout.push_back({
+                        .name = uniform_buffer.name,
                         .index = binding_idx,
                         .count = 1,
-                        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        .type  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                         .stage = VK_SHADER_STAGE_FRAGMENT_BIT
                     });
                 }
+                descriptor_types[uniform_buffer.name] = layout.back();
             }
         }
 
@@ -150,7 +146,7 @@ namespace qz::gfx {
                         case VertexAttribute::vec3: return VK_FORMAT_R32G32B32_SFLOAT;
                         case VertexAttribute::vec4: return VK_FORMAT_R32G32B32A32_SFLOAT;
                     }
-                    return VK_FORMAT_UNDEFINED;
+                    qz_unreachable();
                 }(),
                 .offset = offset
             });
@@ -225,6 +221,7 @@ namespace qz::gfx {
         color_blend_state.blendConstants[3] = 0.0f;
 
         DescriptorSetLayout descriptors{};
+        descriptors.reserve(set_layout.size());
         for (const auto& [_, descriptor] : set_layout) {
             if (!renderer.layout_cache.contains(descriptor)) {
                 std::vector<VkDescriptorSetLayoutBinding> bindings{};
@@ -277,12 +274,17 @@ namespace qz::gfx {
         pipeline_create_info.basePipelineHandle = nullptr;
         pipeline_create_info.basePipelineIndex = -1;
 
-        VkPipeline pipeline;
-        qz_vulkan_check(vkCreateGraphicsPipelines(context.device, nullptr, 1, &pipeline_create_info, nullptr, &pipeline));
+        VkPipeline handle;
+        qz_vulkan_check(vkCreateGraphicsPipelines(context.device, nullptr, 1, &pipeline_create_info, nullptr, &handle));
         vkDestroyShaderModule(context.device, pipeline_stages[0].module, nullptr);
         vkDestroyShaderModule(context.device, pipeline_stages[1].module, nullptr);
 
-        return from_raw(pipeline, layout, std::move(descriptors));
+        Pipeline pipeline{};
+        pipeline._handle = handle;
+        pipeline._bindings = std::move(descriptor_types);
+        pipeline._layout = layout;
+        pipeline._descriptors = std::move(descriptors);
+        return pipeline;
     }
 
     void Pipeline::destroy(const Context& context, Pipeline& pipeline) noexcept {
@@ -301,5 +303,9 @@ namespace qz::gfx {
 
     VkDescriptorSetLayout Pipeline::set(std::size_t index) const noexcept {
         return _descriptors.at(index);
+    }
+
+    const DescriptorBinding& Pipeline::operator [](std::string_view name) const noexcept {
+        return _bindings.at(name.data());
     }
 } // namespace qz::gfx

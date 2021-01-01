@@ -13,7 +13,6 @@ namespace qz::gfx {
             VmaMemoryUsage usage;
             std::size_t capacity;
         };
-
         VmaAllocation allocation;
         std::size_t capacity;
         VkBuffer handle;

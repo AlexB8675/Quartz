@@ -1,0 +1,43 @@
+#pragma once
+
+#include <qz/meta/constants.hpp>
+#include <qz/meta/types.hpp>
+
+#include <qz/util/macros.hpp>
+#include <qz/util/hash.hpp>
+#include <qz/util/fwd.hpp>
+
+#include <vulkan/vulkan.h>
+
+#include <unordered_map>
+
+namespace qz::gfx {
+    template <std::size_t extent = meta::in_flight>
+    class DescriptorSet;
+
+    template <>
+    class DescriptorSet<1> {
+        using BoundDescriptors = std::unordered_map<DescriptorBinding, VkDescriptorBufferInfo>;
+        VkDescriptorSet _handle;
+        BoundDescriptors _bound;
+    public:
+        qz_nodiscard static DescriptorSet<1> from_raw(VkDescriptorSet) noexcept;
+        qz_nodiscard static DescriptorSet<1> allocate(const Context&, VkDescriptorSetLayout) noexcept;
+        static void destroy(const Context&, DescriptorSet<1>&) noexcept;
+
+        static void bind(const Context&, DescriptorSet<1>&, const DescriptorBinding&, const Buffer<1>&) noexcept;
+        qz_nodiscard VkDescriptorSet handle() const noexcept;
+        qz_nodiscard const VkDescriptorSet* ptr_handle() const noexcept;
+    };
+
+    template <>
+    class DescriptorSet<> {
+        meta::in_flight_array<DescriptorSet<1>> _handles;
+    public:
+        qz_nodiscard static DescriptorSet<> allocate(const Context&, VkDescriptorSetLayout) noexcept;
+        static void destroy(const Context&, DescriptorSet<>&) noexcept;
+
+        qz_nodiscard DescriptorSet<1>& operator [](std::size_t) noexcept;
+        qz_nodiscard const DescriptorSet<1>& operator [](std::size_t) const noexcept;
+    };
+} // namespace qz::gfx

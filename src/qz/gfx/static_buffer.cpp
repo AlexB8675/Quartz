@@ -1,5 +1,5 @@
-#include <qz/gfx/context.hpp>
 #include <qz/gfx/static_buffer.hpp>
+#include <qz/gfx/context.hpp>
 
 namespace qz::gfx {
     qz_nodiscard StaticBuffer StaticBuffer::create(const Context& context, CreateInfo&& info) noexcept {

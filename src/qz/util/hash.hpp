@@ -29,5 +29,5 @@ namespace std {
         }
     };
 
-    qz_make_hashable(qz::gfx::DescriptorBinding, index, count, type, stage);
+    qz_make_hashable(qz::gfx::DescriptorBinding, name, index, count, type, stage);
 } // namespace std

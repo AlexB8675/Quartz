@@ -190,7 +190,7 @@ namespace qz::gfx {
                 break;
             }
         }
-        qz_assert(context.gpu, "Failed to find a suitable graphics gard");
+        qz_assert(context.gpu, "failed to find a suitable graphics gard");
 
         // Pick queue family.
         // Query for all available queue families.
@@ -221,8 +221,8 @@ namespace qz::gfx {
                 transfer_family = graphics_family;
             }
         }
-        qz_assert(graphics_family != -1, "No suitable graphics family found");
-        qz_assert(transfer_family != -1, "No suitable transfer family found");
+        qz_assert(graphics_family != -1, "no suitable graphics family found");
+        qz_assert(transfer_family != -1, "no suitable transfer family found");
 
         constexpr auto graphics_priority = 1.0f;
         std::array<VkDeviceQueueCreateInfo, 2> queue_create_info{};
@@ -297,6 +297,21 @@ namespace qz::gfx {
             qz_vulkan_check(vkCreateCommandPool(context.device, &transfer_pool_create_info, nullptr, &context.transfer_pools.emplace_back()));
         }
 
+        // Create main descriptor set pool, used for allocating all our descriptor sets.
+        constexpr std::array<VkDescriptorPoolSize, 3> descriptor_sizes = { {
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1024 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         1024 },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
+        } };
+
+        VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
+        descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        descriptor_pool_create_info.maxSets = 4096;
+        descriptor_pool_create_info.poolSizeCount = descriptor_sizes.size();
+        descriptor_pool_create_info.pPoolSizes = descriptor_sizes.data();
+        qz_vulkan_check(vkCreateDescriptorPool(context.device, &descriptor_pool_create_info, nullptr, &context.descriptor_pool));
+
         return context;
     }
 
@@ -305,6 +320,7 @@ namespace qz::gfx {
         for (const auto pool : context.transfer_pools) {
             vkDestroyCommandPool(context.device, pool, nullptr);
         }
+        vkDestroyDescriptorPool(context.device, context.descriptor_pool, nullptr);
         vmaDestroyAllocator(context.allocator);
         vkDestroyDevice(context.device, nullptr);
 #if defined(quartz_debug)

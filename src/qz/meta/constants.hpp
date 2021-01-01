@@ -1,13 +1,11 @@
 #pragma once
 
-#include <qz/util/macros.hpp>
-
-#include <cstdint>
-#include <string>
-
 namespace qz::meta {
     constexpr struct viewport_tag_t {} full_viewport;
     constexpr struct scissor_tag_t {} full_scissor;
+
+    constexpr struct uniform_buffer_tag_t{} uniform_buffer;
+    constexpr struct storage_buffer_tag_t{} storage_buffer;
 
     constexpr auto in_flight = 2u;
     constexpr auto external_subpass = ~0u;

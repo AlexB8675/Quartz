@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
-project(Quartz CXX)
+project(quartz CXX)
+
+set(CMAKE_CXX_STANDARD 20)
 
 find_package(Vulkan REQUIRED)
 
@@ -22,18 +24,21 @@ set(FTL_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
 set(FTL_CPP_17 ON CACHE BOOL "" FORCE)
 add_subdirectory(ext/FiberTaskingLib)
 
-set(CMAKE_CXX_STANDARD 20)
 
-add_executable(Quartz
+add_subdirectory(ext/glm)
+
+add_executable(quartz
     src/qz/gfx/assets.cpp
     src/qz/gfx/assets.hpp
-    src/qz/gfx/static_buffer.cpp
-    src/qz/gfx/static_buffer.hpp
+    src/qz/gfx/buffer.cpp
+    src/qz/gfx/buffer.hpp
     src/qz/gfx/clear.hpp
     src/qz/gfx/command_buffer.cpp
     src/qz/gfx/command_buffer.hpp
     src/qz/gfx/context.cpp
     src/qz/gfx/context.hpp
+    src/qz/gfx/descriptor_set.cpp
+    src/qz/gfx/descriptor_set.hpp
     src/qz/gfx/image.cpp
     src/qz/gfx/image.hpp
     src/qz/gfx/pipeline.cpp
@@ -44,6 +49,8 @@ add_executable(Quartz
     src/qz/gfx/render_pass.hpp
     src/qz/gfx/renderer.cpp
     src/qz/gfx/renderer.hpp
+    src/qz/gfx/static_buffer.cpp
+    src/qz/gfx/static_buffer.hpp
     src/qz/gfx/static_mesh.cpp
     src/qz/gfx/static_mesh.hpp
     src/qz/gfx/swapchain.cpp
@@ -61,24 +68,30 @@ add_executable(Quartz
 
     src/main.cpp)
 
-target_compile_definitions(Quartz PUBLIC
+target_compile_definitions(quartz PUBLIC
 
-    # Set DEBUG macro if Debug mode.
+    # Set DEBUG macro if in Debug mode.
     $<$<CONFIG:Debug>:quartz_debug>
 
     # Removes annoying Window's shit.
     $<$<BOOL:${WIN32}>:
         _CRT_SECURE_NO_WARNINGS
         WIN32_LEAN_AND_MEAN
-        NOMINMAX>)
+        NOMINMAX>
 
-target_compile_options(Quartz PUBLIC $<$<BOOL:${MSVC}>:/EHsc>)
+    # Misc
+    VK_ENABLE_BETA_EXTENSIONS
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    GLM_FORCE_RADIANS)
 
-target_include_directories(Quartz PUBLIC
+target_compile_options(quartz PUBLIC $<$<BOOL:${MSVC}>:/EHsc>)
+
+target_include_directories(quartz PUBLIC
     src
+    ext/glm
     ext/VulkanMemoryAllocator/src)
 
-target_link_libraries(Quartz PUBLIC
+target_link_libraries(quartz PUBLIC
     ftl
     glfw
     Vulkan::Vulkan

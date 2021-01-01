@@ -1,12 +1,13 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
-#include <vk_mem_alloc.h>
-
-#include <ftl/task_scheduler.h>
 
 #include <qz/util/macros.hpp>
 #include <qz/util/fwd.hpp>
+
+#include <ftl/task_scheduler.h>
+
+#include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 
 #include <cstdint>
 #include <memory>
@@ -31,6 +32,7 @@ namespace qz::gfx {
         std::unique_ptr<Queue> transfer;
         VkCommandPool main_pool;
         std::vector<VkCommandPool> transfer_pools;
+        VkDescriptorPool descriptor_pool;
 
         qz_nodiscard static Context create(const Settings& = {}) noexcept;
         static void destroy(Context&) noexcept;

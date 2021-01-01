@@ -1,9 +1,10 @@
+#include <qz/gfx/descriptor_set.hpp>
 #include <qz/gfx/command_buffer.hpp>
+#include <qz/gfx/static_buffer.hpp>
 #include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/render_pass.hpp>
 #include <qz/gfx/pipeline.hpp>
 #include <qz/gfx/context.hpp>
-#include <qz/gfx/static_buffer.hpp>
 #include <qz/gfx/queue.hpp>
 
 namespace qz::gfx {
@@ -11,7 +12,6 @@ namespace qz::gfx {
         CommandBuffer command_buffer{};
         command_buffer._handle = handle;
         command_buffer._pool = command_pool;
-
         return command_buffer;
     }
 
@@ -98,6 +98,12 @@ namespace qz::gfx {
 
     CommandBuffer& CommandBuffer::bind_pipeline(const Pipeline& pipeline) noexcept {
         vkCmdBindPipeline(_handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle());
+        _active_pipeline = &pipeline;
+        return *this;
+    }
+
+    CommandBuffer& CommandBuffer::bind_descriptor_set(const DescriptorSet<1>& set) noexcept {
+        vkCmdBindDescriptorSets(_handle, VK_PIPELINE_BIND_POINT_GRAPHICS, _active_pipeline->layout(), 0, 1, set.ptr_handle(), 0, nullptr);
         return *this;
     }
 
@@ -113,9 +119,7 @@ namespace qz::gfx {
     }
 
     CommandBuffer& CommandBuffer::bind_static_mesh(const StaticMesh& mesh) noexcept {
-        bind_vertex_buffer(mesh.geometry);
-        bind_index_buffer(mesh.indices);
-        return *this;
+        return bind_vertex_buffer(mesh.geometry).bind_index_buffer(mesh.indices);
     }
 
     CommandBuffer& CommandBuffer::draw(std::uint32_t vertices,
@@ -135,7 +139,7 @@ namespace qz::gfx {
     }
 
     CommandBuffer& CommandBuffer::end_render_pass() noexcept {
-        qz_assert(_active_pass, "No active renderpass at end_render_pass()");
+        _active_pipeline = nullptr;
         _active_pass = nullptr;
         vkCmdEndRenderPass(_handle);
         return *this;

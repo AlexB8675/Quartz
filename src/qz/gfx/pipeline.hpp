@@ -5,9 +5,10 @@
 
 #include <vulkan/vulkan.h>
 
+#include <unordered_map>
 #include <cstdint>
+#include <string>
 #include <vector>
-#include <map>
 
 namespace qz::gfx {
     enum class VertexAttribute : std::uint32_t {
@@ -18,23 +19,25 @@ namespace qz::gfx {
     };
 
     struct DescriptorBinding {
+        std::string name;
         std::size_t index;
         std::uint32_t count;
         VkDescriptorType type;
         VkShaderStageFlags stage;
 
-        qz_make_equal_to(DescriptorBinding, index, count, type, stage);
+        qz_make_equal_to(DescriptorBinding, name, index, count, type, stage);
     };
 
     using DescriptorLayout    = std::vector<DescriptorBinding>;
     using DescriptorSetLayout = std::vector<VkDescriptorSetLayout>;
+    using DescriptorTypes     = std::unordered_map<std::string, DescriptorBinding>;
 
     struct Pipeline {
     private:
         VkPipeline _handle;
         VkPipelineLayout _layout;
+        DescriptorTypes _bindings;
         DescriptorSetLayout _descriptors;
-
     public:
         struct CreateInfo {
             const char* vertex;
@@ -45,12 +48,12 @@ namespace qz::gfx {
             std::uint32_t subpass;
         };
 
-        qz_nodiscard static Pipeline from_raw(VkPipeline, VkPipelineLayout, DescriptorSetLayout&&) noexcept;
         qz_nodiscard static Pipeline create(const Context&, Renderer&, CreateInfo&&) noexcept;
         static void destroy(const Context&, Pipeline&) noexcept;
 
         qz_nodiscard VkPipeline handle() const noexcept;
         qz_nodiscard VkPipelineLayout layout() const noexcept;
         qz_nodiscard VkDescriptorSetLayout set(std::size_t) const noexcept;
+        qz_nodiscard const DescriptorBinding& operator [](std::string_view) const noexcept;
     };
 } // namespace qz::gfx

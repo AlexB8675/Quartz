@@ -200,12 +200,12 @@ namespace qz::gfx {
     }
 
     qz_nodiscard VkFramebuffer& RenderPass::framebuffer(std::size_t idx) noexcept {
-        qz_assert(0 <= idx && idx < _framebuffers.size(), "Framebuffer index not in range");
+        qz_assert(0 <= idx && idx < _framebuffers.size(), "framebuffer index not in range");
         return _framebuffers[idx];
     }
 
     qz_nodiscard const VkFramebuffer& RenderPass::framebuffer(std::size_t idx) const noexcept {
-        qz_assert(0 <= idx && idx < _framebuffers.size(), "Framebuffer index not in range");
+        qz_assert(0 <= idx && idx < _framebuffers.size(), "framebuffer index not in range");
         return _framebuffers[idx];
     }
 
@@ -220,11 +220,8 @@ namespace qz::gfx {
     }
 
     qz_nodiscard VkExtent2D RenderPass::extent() const noexcept {
-        const auto& attachment = _attachments[0];
-        return {
-            attachment.image.width,
-            attachment.image.height
-        };
+        const auto& image = _attachments[0].image;
+        return { image.width, image.height };
     }
 
     qz_nodiscard VkRenderPass RenderPass::handle() const noexcept {

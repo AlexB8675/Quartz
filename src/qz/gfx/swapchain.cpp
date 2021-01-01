@@ -17,7 +17,7 @@ namespace qz::gfx {
 
         VkBool32 present_support;
         qz_vulkan_check(vkGetPhysicalDeviceSurfaceSupportKHR(context.gpu, family, swapchain.surface, &present_support));
-        qz_assert(present_support, "Surface or family does not support presentation");
+        qz_assert(present_support, "surface or family does not support presentation");
 
         // Query for surface capabilities (width, height, format, color space, etc..).
         VkSurfaceCapabilitiesKHR capabilities;

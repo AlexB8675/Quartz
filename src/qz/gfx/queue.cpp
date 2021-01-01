@@ -7,11 +7,10 @@ namespace qz::gfx {
     qz_nodiscard std::unique_ptr<Queue> Queue::create(const Context& context,
                                                        std::uint32_t family,
                                                        std::uint32_t index) noexcept {
-        auto queue = new Queue();
+        auto queue = std::make_unique<Queue>();
         queue->_family = family;
         vkGetDeviceQueue(context.device, family, index, &queue->_handle);
-
-        return std::unique_ptr<Queue>(queue);
+        return queue;
     }
 
     void Queue::submit(const CommandBuffer& commands,
