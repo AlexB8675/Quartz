@@ -24,7 +24,6 @@ set(FTL_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
 set(FTL_CPP_17 ON CACHE BOOL "" FORCE)
 add_subdirectory(ext/FiberTaskingLib)
 
-
 add_subdirectory(ext/glm)
 
 add_executable(quartz
@@ -53,6 +52,9 @@ add_executable(quartz
     src/qz/gfx/static_buffer.hpp
     src/qz/gfx/static_mesh.cpp
     src/qz/gfx/static_mesh.hpp
+    src/qz/gfx/static_texture.cpp
+    src/qz/gfx/static_texture.hpp
+    src/qz/gfx/stb_image.cpp
     src/qz/gfx/swapchain.cpp
     src/qz/gfx/swapchain.hpp
     src/qz/gfx/vma.cpp
@@ -62,6 +64,8 @@ add_executable(quartz
     src/qz/meta/constants.hpp
     src/qz/meta/types.hpp
 
+    src/qz/util/file_view.cpp
+    src/qz/util/file_view.hpp
     src/qz/util/fwd.hpp
     src/qz/util/hash.hpp
     src/qz/util/macros.hpp
@@ -89,6 +93,7 @@ target_compile_options(quartz PUBLIC $<$<BOOL:${MSVC}>:/EHsc>)
 target_include_directories(quartz PUBLIC
     src
     ext/glm
+    ext/stb
     ext/VulkanMemoryAllocator/src)
 
 target_link_libraries(quartz PUBLIC

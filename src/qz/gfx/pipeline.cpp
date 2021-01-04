@@ -11,6 +11,7 @@
 #include <fstream>
 #include <cstring>
 #include <string>
+#include <map>
 
 namespace qz::gfx {
     qz_nodiscard static std::vector<char> load_spirv_code(const char* path) noexcept {
@@ -33,9 +34,12 @@ namespace qz::gfx {
         pipeline_stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         pipeline_stages[1].pName = "main";
 
-        DescriptorTypes descriptor_types;
+        VkPushConstantRange push_constant_range{};
+        push_constant_range.offset = 0;
+
+        DescriptorBindings descriptor_types;
         std::vector<std::uint32_t> vertex_input_locations;
-        std::map<std::size_t, DescriptorLayout> set_layout;
+        std::map<std::size_t, DescriptorLayout> descriptor_layout;
         { // Vertex shader.
             const auto binary = load_spirv_code(info.vertex);
             const auto compiler = spirv_cross::CompilerGLSL((const std::uint32_t*)binary.data(), binary.size() / sizeof(std::uint32_t));
@@ -51,14 +55,21 @@ namespace qz::gfx {
                 const auto set_idx = compiler.get_decoration(uniform_buffer.id, spv::DecorationDescriptorSet);
                 const auto binding_idx = compiler.get_decoration(uniform_buffer.id, spv::DecorationBinding);
 
-                set_layout[set_idx].push_back(
+                descriptor_layout[set_idx].push_back(
                     descriptor_types[uniform_buffer.name] = {
-                        .name = uniform_buffer.name,
-                        .index = binding_idx,
-                        .count = 1,
-                        .type  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                        .stage = VK_SHADER_STAGE_VERTEX_BIT
+                        .dynamic = false,
+                        .name    = uniform_buffer.name,
+                        .index   = binding_idx,
+                        .count   = 1,
+                        .type    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        .stage   = VK_SHADER_STAGE_VERTEX_BIT
                     });
+            }
+
+            for (const auto& push_constant : resources.push_constant_buffers) {
+                const auto& type = compiler.get_type(push_constant.type_id);
+                push_constant_range.size = compiler.get_declared_struct_size(type);
+                push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
             }
 
             vertex_input_locations.reserve(resources.stage_inputs.size());
@@ -100,30 +111,51 @@ namespace qz::gfx {
             for (const auto& uniform_buffer : resources.uniform_buffers) {
                 const auto set_idx = compiler.get_decoration(uniform_buffer.id, spv::DecorationDescriptorSet);
                 const auto binding_idx = compiler.get_decoration(uniform_buffer.id, spv::DecorationBinding);
-                auto& layout = set_layout[set_idx];
+                auto& layout = descriptor_layout[set_idx];
 
                 if (auto it = layout.end(); (it = std::find_if(layout.begin(), layout.end(),
                         [binding_idx](const auto& each) {
                             return each.index == binding_idx;
                         })) != layout.end()) {
-                    it->stage |= VK_SHADER_STAGE_FRAGMENT_BIT;
+                    descriptor_types[uniform_buffer.name].stage =
+                        (it->stage |= VK_SHADER_STAGE_FRAGMENT_BIT);
                 } else {
-                    layout.push_back({
-                        .name = uniform_buffer.name,
-                        .index = binding_idx,
-                        .count = 1,
-                        .type  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                        .stage = VK_SHADER_STAGE_FRAGMENT_BIT
-                    });
+                    layout.push_back(
+                        descriptor_types[uniform_buffer.name] = {
+                            .dynamic = false,
+                            .name    = uniform_buffer.name,
+                            .index   = binding_idx,
+                            .count   = 1,
+                            .type    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                            .stage   = VK_SHADER_STAGE_FRAGMENT_BIT
+                        });
                 }
-                descriptor_types[uniform_buffer.name] = layout.back();
+            }
+
+            for (const auto& image : resources.sampled_images) {
+                const auto set_idx = compiler.get_decoration(image.id, spv::DecorationDescriptorSet);
+                const auto binding_idx = compiler.get_decoration(image.id, spv::DecorationBinding);
+                const auto& image_type = compiler.get_type(image.type_id);
+                const bool is_array = !image_type.array.empty();
+                const bool is_dynamic = is_array && image_type.array[0] == 0;
+
+                descriptor_layout[set_idx].push_back(
+                    descriptor_types[image.name] = {
+                        .dynamic = is_dynamic,
+                        .name    = image.name,
+                        .index   = binding_idx,
+                        .count   = !is_array ? 1 : is_dynamic ? 4096 : image_type.array[0],
+                        .type    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .stage   = VK_SHADER_STAGE_FRAGMENT_BIT
+                    });
+            }
+
+            for (const auto& push_constant : resources.push_constant_buffers) {
+                const auto& type = compiler.get_type(push_constant.type_id);
+                push_constant_range.size = compiler.get_declared_struct_size(type);
+                push_constant_range.stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
             }
         }
-
-        VkPipelineDynamicStateCreateInfo pipeline_dynamic_states{};
-        pipeline_dynamic_states.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        pipeline_dynamic_states.dynamicStateCount = info.states.size();
-        pipeline_dynamic_states.pDynamicStates = info.states.data();
 
         VkVertexInputBindingDescription vertex_binding_description{};
         vertex_binding_description.binding = 0;
@@ -199,8 +231,8 @@ namespace qz::gfx {
 
         VkPipelineDepthStencilStateCreateInfo depth_stencil_state{};
         depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depth_stencil_state.depthTestEnable = false;
-        depth_stencil_state.depthWriteEnable = false;
+        depth_stencil_state.depthTestEnable = info.depth;
+        depth_stencil_state.depthWriteEnable = info.depth;
         depth_stencil_state.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         depth_stencil_state.depthBoundsTestEnable = false;
         depth_stencil_state.stencilTestEnable = false;
@@ -220,15 +252,29 @@ namespace qz::gfx {
         color_blend_state.blendConstants[2] = 0.0f;
         color_blend_state.blendConstants[3] = 0.0f;
 
-        DescriptorSetLayout descriptors{};
-        descriptors.reserve(set_layout.size());
-        for (const auto& [_, descriptor] : set_layout) {
-            if (!renderer.layout_cache.contains(descriptor)) {
-                std::vector<VkDescriptorSetLayoutBinding> bindings{};
-                bindings.reserve(descriptor.size());
-                for (const auto& binding : descriptor) {
+        VkPipelineDynamicStateCreateInfo pipeline_dynamic_states{};
+        pipeline_dynamic_states.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        pipeline_dynamic_states.dynamicStateCount = info.states.size();
+        pipeline_dynamic_states.pDynamicStates = info.states.data();
+
+        DescriptorSetLayouts set_layouts{};
+        set_layouts.reserve(descriptor_layout.size());
+        for (const auto& [_, descriptors] : descriptor_layout) {
+            if (!renderer.layout_cache.contains(descriptors)) {
+                std::vector<VkDescriptorBindingFlags> flags;
+                flags.reserve(descriptors.size());
+                std::vector<VkDescriptorSetLayoutBinding> bindings;
+                bindings.reserve(descriptors.size());
+                for (const auto& binding : descriptors) {
+                    flags.emplace_back();
+                    if (binding.dynamic) {
+                        flags.back() =
+                            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+                    }
+
                     bindings.push_back({
-                        .binding = (uint32_t)binding.index,
+                        .binding = (std::uint32_t)binding.index,
                         .descriptorType = binding.type,
                         .descriptorCount = binding.count,
                         .stageFlags = binding.stage,
@@ -236,22 +282,39 @@ namespace qz::gfx {
                     });
                 }
 
+                VkDescriptorSetLayoutBindingFlagsCreateInfo binding_flags{};
+                binding_flags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+                binding_flags.bindingCount = flags.size();
+                binding_flags.pBindingFlags = flags.data();
+
                 VkDescriptorSetLayoutCreateInfo create_info{};
                 create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+                create_info.pNext = &binding_flags;
                 create_info.flags = {};
                 create_info.bindingCount = bindings.size();
                 create_info.pBindings = bindings.data();
-                qz_vulkan_check(vkCreateDescriptorSetLayout(context.device, &create_info, nullptr, &renderer.layout_cache[descriptor]));
+                qz_vulkan_check(vkCreateDescriptorSetLayout(context.device, &create_info, nullptr, &renderer.layout_cache[descriptors]));
             }
-            descriptors.emplace_back(renderer.layout_cache[descriptor]);
+            set_layouts.push_back({ renderer.layout_cache[descriptors], descriptors });
+        }
+
+        std::vector<VkDescriptorSetLayout> set_layout_handles;
+        set_layout_handles.reserve(set_layouts.size());
+        for (const auto& layout : set_layouts) {
+            set_layout_handles.emplace_back(layout.handle);
         }
 
         VkPipelineLayoutCreateInfo layout_create_info{};
         layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        layout_create_info.setLayoutCount = descriptors.size();
-        layout_create_info.pSetLayouts = descriptors.data();
-        layout_create_info.pushConstantRangeCount = 0;
-        layout_create_info.pPushConstantRanges = nullptr;
+        layout_create_info.setLayoutCount = set_layout_handles.size();
+        layout_create_info.pSetLayouts = set_layout_handles.data();
+        if (push_constant_range.size == 0) {
+            layout_create_info.pushConstantRangeCount = 0;
+            layout_create_info.pPushConstantRanges = nullptr;
+        } else {
+            layout_create_info.pushConstantRangeCount = 1;
+            layout_create_info.pPushConstantRanges = &push_constant_range;
+        }
 
         VkPipelineLayout layout;
         qz_vulkan_check(vkCreatePipelineLayout(context.device, &layout_create_info, nullptr, &layout));
@@ -283,7 +346,7 @@ namespace qz::gfx {
         pipeline._handle = handle;
         pipeline._bindings = std::move(descriptor_types);
         pipeline._layout = layout;
-        pipeline._descriptors = std::move(descriptors);
+        pipeline._descriptors = std::move(set_layouts);
         return pipeline;
     }
 
@@ -301,7 +364,7 @@ namespace qz::gfx {
         return _layout;
     }
 
-    VkDescriptorSetLayout Pipeline::set(std::size_t index) const noexcept {
+    const DescriptorSetLayout& Pipeline::set(std::size_t index) const noexcept {
         return _descriptors.at(index);
     }
 

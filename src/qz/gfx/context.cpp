@@ -244,16 +244,28 @@ namespace qz::gfx {
         qz_assert(query_extension_availability(context.gpu, enabled_extensions),
                   "One or more required device extensions are not available");
 
+        VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing{};
+        descriptor_indexing.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+        descriptor_indexing.shaderSampledImageArrayNonUniformIndexing = true;
+        descriptor_indexing.descriptorBindingVariableDescriptorCount = true;
+        descriptor_indexing.descriptorBindingPartiallyBound = true;
+        descriptor_indexing.runtimeDescriptorArray = true;
+
+        VkPhysicalDeviceFeatures device_features{};
+        device_features.geometryShader = true;
+        device_features.samplerAnisotropy = true;
+
         // Create logical device.
         VkDeviceCreateInfo device_create_info{};
         device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        device_create_info.pNext = &descriptor_indexing;
         device_create_info.queueCreateInfoCount = queue_create_info.size();
         device_create_info.pQueueCreateInfos = queue_create_info.data();
         device_create_info.enabledLayerCount = 0;
         device_create_info.ppEnabledLayerNames = nullptr;
         device_create_info.enabledExtensionCount = enabled_extensions.size();
         device_create_info.ppEnabledExtensionNames = enabled_extensions.data();
-        device_create_info.pEnabledFeatures = nullptr;
+        device_create_info.pEnabledFeatures = &device_features;
         qz_vulkan_check(vkCreateDevice(context.gpu, &device_create_info, nullptr, &context.device));
 
         // And create queues.
@@ -297,26 +309,61 @@ namespace qz::gfx {
             qz_vulkan_check(vkCreateCommandPool(context.device, &transfer_pool_create_info, nullptr, &context.transfer_pools.emplace_back()));
         }
 
+        // Create dedicated graphics transfer pools for each thread.
+        VkCommandPoolCreateInfo transient_pool_create_info{};
+        transfer_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        transfer_pool_create_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        transfer_pool_create_info.queueFamilyIndex = context.graphics->family();
+        context.transfer_pools.reserve(context.scheduler->GetThreadCount());
+        for (std::size_t i = 0; i < context.scheduler->GetThreadCount(); ++i) {
+            qz_vulkan_check(vkCreateCommandPool(context.device, &transfer_pool_create_info, nullptr, &context.transient_pools.emplace_back()));
+        }
+
         // Create main descriptor set pool, used for allocating all our descriptor sets.
         constexpr std::array<VkDescriptorPoolSize, 3> descriptor_sizes = { {
             { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1024 },
             { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         1024 },
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096 },
         } };
 
         VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
         descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        descriptor_pool_create_info.maxSets = 4096;
+        descriptor_pool_create_info.maxSets = 8192;
         descriptor_pool_create_info.poolSizeCount = descriptor_sizes.size();
         descriptor_pool_create_info.pPoolSizes = descriptor_sizes.data();
         qz_vulkan_check(vkCreateDescriptorPool(context.device, &descriptor_pool_create_info, nullptr, &context.descriptor_pool));
+
+        VkSamplerCreateInfo sampler_create_info{};
+        sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sampler_create_info.pNext = nullptr;
+        sampler_create_info.flags = {};
+        sampler_create_info.magFilter = VK_FILTER_LINEAR;
+        sampler_create_info.minFilter = VK_FILTER_LINEAR;
+        sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_create_info.mipLodBias = 0;
+        sampler_create_info.anisotropyEnable = true;
+        sampler_create_info.maxAnisotropy = 16;
+        sampler_create_info.compareEnable = false;
+        sampler_create_info.compareOp = VK_COMPARE_OP_ALWAYS;
+        sampler_create_info.minLod = 0;
+        sampler_create_info.maxLod = 8;
+        sampler_create_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+        sampler_create_info.unnormalizedCoordinates = false;
+        qz_vulkan_check(vkCreateSampler(context.device, &sampler_create_info, nullptr, &context.default_sampler));
 
         return context;
     }
 
     void Context::destroy(Context& context) noexcept {
+        vkDestroySampler(context.device, context.default_sampler, nullptr);
         vkDestroyCommandPool(context.device, context.main_pool, nullptr);
+        for (const auto pool : context.transient_pools) {
+            vkDestroyCommandPool(context.device, pool, nullptr);
+        }
         for (const auto pool : context.transfer_pools) {
             vkDestroyCommandPool(context.device, pool, nullptr);
         }

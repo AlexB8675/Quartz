@@ -10,6 +10,7 @@
 #include <vulkan/vulkan.h>
 
 #include <unordered_map>
+#include <variant>
 
 namespace qz::gfx {
     template <std::size_t extent = meta::in_flight>
@@ -17,15 +18,18 @@ namespace qz::gfx {
 
     template <>
     class DescriptorSet<1> {
-        using BoundDescriptors = std::unordered_map<DescriptorBinding, VkDescriptorBufferInfo>;
+        using BoundDescriptors =
+            std::unordered_map<DescriptorBinding,
+                std::variant<VkDescriptorBufferInfo, DescriptorImageInfo>>;
         VkDescriptorSet _handle;
         BoundDescriptors _bound;
     public:
         qz_nodiscard static DescriptorSet<1> from_raw(VkDescriptorSet) noexcept;
-        qz_nodiscard static DescriptorSet<1> allocate(const Context&, VkDescriptorSetLayout) noexcept;
+        qz_nodiscard static DescriptorSet<1> allocate(const Context&, const DescriptorSetLayout&) noexcept;
         static void destroy(const Context&, DescriptorSet<1>&) noexcept;
 
         static void bind(const Context&, DescriptorSet<1>&, const DescriptorBinding&, const Buffer<1>&) noexcept;
+        static void bind(const Context&, DescriptorSet<1>&, const DescriptorBinding&, const StaticTexture&) noexcept;
         qz_nodiscard VkDescriptorSet handle() const noexcept;
         qz_nodiscard const VkDescriptorSet* ptr_handle() const noexcept;
     };
@@ -34,7 +38,7 @@ namespace qz::gfx {
     class DescriptorSet<> {
         meta::in_flight_array<DescriptorSet<1>> _handles;
     public:
-        qz_nodiscard static DescriptorSet<> allocate(const Context&, VkDescriptorSetLayout) noexcept;
+        qz_nodiscard static DescriptorSet<> allocate(const Context&, const DescriptorSetLayout&) noexcept;
         static void destroy(const Context&, DescriptorSet<>&) noexcept;
 
         qz_nodiscard DescriptorSet<1>& operator [](std::size_t) noexcept;

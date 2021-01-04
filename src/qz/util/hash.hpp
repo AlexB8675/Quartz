@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
-#include <map>
 
 namespace qz::util {
     template <typename... Args>
@@ -29,5 +28,5 @@ namespace std {
         }
     };
 
-    qz_make_hashable(qz::gfx::DescriptorBinding, name, index, count, type, stage);
+    qz_make_hashable(qz::gfx::DescriptorBinding, dynamic, name, index, count, type, stage);
 } // namespace std

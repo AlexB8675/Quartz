@@ -19,25 +19,32 @@ namespace qz::gfx {
     };
 
     struct DescriptorBinding {
+        bool dynamic;
         std::string name;
         std::size_t index;
         std::uint32_t count;
         VkDescriptorType type;
         VkShaderStageFlags stage;
 
-        qz_make_equal_to(DescriptorBinding, name, index, count, type, stage);
+        qz_make_equal_to(DescriptorBinding, dynamic, name, index, count, type, stage);
     };
 
-    using DescriptorLayout    = std::vector<DescriptorBinding>;
-    using DescriptorSetLayout = std::vector<VkDescriptorSetLayout>;
-    using DescriptorTypes     = std::unordered_map<std::string, DescriptorBinding>;
+    using DescriptorLayout = std::vector<DescriptorBinding>;
+
+    struct DescriptorSetLayout {
+        VkDescriptorSetLayout handle;
+        DescriptorLayout descriptors;
+    };
+
+    using DescriptorSetLayouts = std::vector<DescriptorSetLayout>;
+    using DescriptorBindings   = std::unordered_map<std::string, DescriptorBinding>;
 
     struct Pipeline {
     private:
         VkPipeline _handle;
         VkPipelineLayout _layout;
-        DescriptorTypes _bindings;
-        DescriptorSetLayout _descriptors;
+        DescriptorBindings _bindings;
+        DescriptorSetLayouts _descriptors;
     public:
         struct CreateInfo {
             const char* vertex;
@@ -46,6 +53,7 @@ namespace qz::gfx {
             std::vector<VkDynamicState> states;
             const RenderPass* render_pass;
             std::uint32_t subpass;
+            bool depth;
         };
 
         qz_nodiscard static Pipeline create(const Context&, Renderer&, CreateInfo&&) noexcept;
@@ -53,7 +61,7 @@ namespace qz::gfx {
 
         qz_nodiscard VkPipeline handle() const noexcept;
         qz_nodiscard VkPipelineLayout layout() const noexcept;
-        qz_nodiscard VkDescriptorSetLayout set(std::size_t) const noexcept;
+        qz_nodiscard const DescriptorSetLayout& set(std::size_t) const noexcept;
         qz_nodiscard const DescriptorBinding& operator [](std::string_view) const noexcept;
     };
 } // namespace qz::gfx

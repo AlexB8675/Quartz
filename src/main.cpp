@@ -1,4 +1,5 @@
 #include <qz/gfx/descriptor_set.hpp>
+#include <qz/gfx/static_texture.hpp>
 #include <qz/gfx/render_pass.hpp>
 #include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/pipeline.hpp>
@@ -42,10 +43,25 @@ int main() {
             .discard = false,
             .layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             .clear = gfx::ClearColor{}
+        }, {
+            .image = gfx::Image::create(context, {
+                .width = 1280,
+                .height = 720,
+                .mips = 1,
+                .format = VK_FORMAT_D32_SFLOAT_S8_UINT,
+                .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+            }),
+            .name = "depth",
+            .framebuffers = { 0 },
+            .owning = true,
+            .discard = true,
+            .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            .clear = gfx::ClearDepth{ 1.0f, 0 }
         } },
         .subpasses = { {
             .attachments = {
-                "color"
+                "color",
+                "depth"
             }
         } },
         .dependencies = { {
@@ -64,20 +80,22 @@ int main() {
         .attributes = {
             gfx::VertexAttribute::vec3,
             gfx::VertexAttribute::vec3,
+            gfx::VertexAttribute::vec2
         },
         .states = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
         },
         .render_pass = &render_pass,
-        .subpass = 0
+        .subpass = 0,
+        .depth = true
     });
 
     const auto triangle = gfx::StaticMesh::request(context, {
         .geometry = {
-            -1.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-             0.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-            -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f
+            -1.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f,  1.0f,
+             0.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  1.0f,  1.0f,
+            -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f, -1.0f
         },
         .indices = {
             0, 1, 2
@@ -86,10 +104,10 @@ int main() {
 
     const auto quad = gfx::StaticMesh::request(context, {
         .geometry = {
-            0.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-            0.0f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-            1.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-            1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f
+            0.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f,  1.0f,
+            0.0f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, -1.0f, -1.0f,
+            1.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  1.0f,  1.0f,
+            1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f, -1.0f
         },
         .indices = {
             0, 1, 2,
@@ -97,23 +115,33 @@ int main() {
         }
     });
 
+    const auto black = gfx::StaticTexture::allocate(context, "../data/textures/black.png");
+    const auto container = gfx::StaticTexture::request(context, "../data/textures/container.jpg");
+
     Camera camera{
         glm::mat4(1.0f),
         glm::mat4(1.0f),
     };
     auto set = gfx::DescriptorSet<>::allocate(context, pipeline.set(0));
-    auto buffer = gfx::Buffer<>::allocate(context, meta::uniform_buffer, sizeof(Camera));
+    auto buffer = gfx::Buffer<>::allocate(context, sizeof(Camera), meta::uniform_buffer);
 
-    double delta_time = 0, last_frame = 0;
+    std::size_t frame_count = 0;
+    double delta_time = 0, last_frame = 00;
     while (!window.should_close()) {
         auto [command_buffer, frame] = gfx::acquire_next_frame(renderer, context);
+        ++frame_count;
 
         const auto current_frame = gfx::get_time();
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
-        buffer[frame.index].write(&camera, sizeof(Camera));
+        buffer[frame.index].write(&camera, meta::whole_size);
         gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["Camera"], buffer[frame.index]);
+        if (assets::is_ready(container)) {
+            gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["container"], assets::from_handle(container));
+        } else {
+            gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["container"], assets::from_handle(black));
+        }
 
         command_buffer
             .begin()
@@ -141,7 +169,7 @@ int main() {
                 .image = frame.image,
                 .source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                 .dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
-                .source_access = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                .source_access = {},
                 .dest_access = VK_ACCESS_TRANSFER_WRITE_BIT,
                 .old_layout = VK_IMAGE_LAYOUT_UNDEFINED,
                 .new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL

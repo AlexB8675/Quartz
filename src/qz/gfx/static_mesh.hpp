@@ -18,5 +18,6 @@ namespace qz::gfx {
         StaticBuffer indices;
 
         qz_nodiscard static meta::Handle<StaticMesh> request(const Context&, StaticMesh::CreateInfo&&) noexcept;
+        static void destroy(const Context&, StaticMesh&) noexcept;
     };
 } // namespace qz::gfx

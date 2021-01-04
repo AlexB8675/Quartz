@@ -146,35 +146,50 @@ namespace qz::gfx {
     }
 
     CommandBuffer& CommandBuffer::copy_image(const Image& source, const Image& dest) noexcept {
-        VkImageCopy image_region{};
-        image_region.srcSubresource = {
+        VkImageCopy region{};
+        region.srcSubresource = {
             .aspectMask = source.aspect,
             .mipLevel = 0,
             .baseArrayLayer = 0,
             .layerCount = 1
         };
-        image_region.srcOffset = {};
-        image_region.dstSubresource = {
+        region.srcOffset = {};
+        region.dstSubresource = {
             .aspectMask = dest.aspect,
             .mipLevel = 0,
             .baseArrayLayer = 0,
             .layerCount = 1
         };
-        image_region.dstOffset = {};
-        image_region.extent = { source.width, source.height, 1 };
+        region.dstOffset = {};
+        region.extent = { source.width, source.height, 1 };
         vkCmdCopyImage(_handle,
             source.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             dest.handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            1, &image_region);
+            1, &region);
         return *this;
     }
 
     CommandBuffer& CommandBuffer::copy_buffer(const StaticBuffer& source, const StaticBuffer& dest) noexcept {
-        VkBufferCopy buffer_region{};
-        buffer_region.size = source.capacity;
-        buffer_region.srcOffset = 0;
-        buffer_region.dstOffset = 0;
-        vkCmdCopyBuffer(_handle, source.handle, dest.handle, 1, &buffer_region);
+        VkBufferCopy region{};
+        region.size = source.capacity;
+        region.srcOffset = 0;
+        region.dstOffset = 0;
+        vkCmdCopyBuffer(_handle, source.handle, dest.handle, 1, &region);
+        return *this;
+    }
+
+    CommandBuffer& CommandBuffer::copy_buffer_to_image(const StaticBuffer& source, const Image& dest) noexcept {
+        VkBufferImageCopy region{};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource.aspectMask = dest.aspect;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = { 0, 0, 0 };
+        region.imageExtent = { dest.width, dest.height, 1 };
+        vkCmdCopyBufferToImage(_handle, source.handle, dest.handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
         return *this;
     }
 
@@ -196,6 +211,34 @@ namespace qz::gfx {
             0, nullptr,
             1, &barrier,
             0, nullptr);
+        return *this;
+    }
+
+    CommandBuffer& CommandBuffer::transfer_ownership(const ImageMemoryBarrier& info, const Queue& source, const Queue& dest) noexcept {
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.srcAccessMask = info.source_access;
+        barrier.dstAccessMask = info.dest_access;
+        barrier.oldLayout = info.old_layout;
+        barrier.newLayout = info.new_layout;
+        barrier.srcQueueFamilyIndex = source.family();
+        barrier.dstQueueFamilyIndex = dest.family();
+        barrier.image = info.image->handle;
+        barrier.subresourceRange = {
+            .aspectMask = info.image->aspect,
+            .baseMipLevel = 0,
+            .levelCount = info.image->mips,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        };
+        vkCmdPipelineBarrier(
+            _handle,
+            info.source_stage,
+            info.dest_stage,
+            VkDependencyFlags{},
+            0, nullptr,
+            0, nullptr,
+            1, &barrier);
         return *this;
     }
 

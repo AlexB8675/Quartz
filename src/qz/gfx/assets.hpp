@@ -16,8 +16,5 @@ namespace qz::assets {
     template <typename T>
     void finalize(meta::Handle<T>, T&&) noexcept;
 
-    template <typename T>
-    void wait_all() noexcept;
-
     void free_all_resources(const gfx::Context&) noexcept;
 } // namespace qz::assets

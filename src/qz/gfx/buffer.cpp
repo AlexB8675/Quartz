@@ -7,7 +7,7 @@ namespace qz::gfx {
         return buffer;
     }
 
-    qz_nodiscard Buffer<1> Buffer<1>::allocate(const Context& context, meta::uniform_buffer_tag_t, std::size_t size) noexcept {
+    qz_nodiscard Buffer<1> Buffer<1>::allocate(const Context& context, std::size_t size, meta::uniform_buffer_tag_t) noexcept {
         return from_raw(StaticBuffer::create(context, {
             .flags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             .usage = VMA_MEMORY_USAGE_CPU_TO_GPU,
@@ -15,7 +15,7 @@ namespace qz::gfx {
         }));
     }
 
-    qz_nodiscard Buffer<1> Buffer<1>::allocate(const Context& context, meta::storage_buffer_tag_t, std::size_t size) noexcept {
+    qz_nodiscard Buffer<1> Buffer<1>::allocate(const Context& context, std::size_t size, meta::storage_buffer_tag_t) noexcept {
         return from_raw(StaticBuffer::create(context, {
             .flags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             .usage = VMA_MEMORY_USAGE_CPU_TO_GPU,
@@ -32,6 +32,10 @@ namespace qz::gfx {
         std::memcpy(_handle.mapped, data, size);
     }
 
+    void Buffer<1>::write(const void* data, meta::whole_size_tag_t) noexcept {
+        write(data, _handle.capacity);
+    }
+
     qz_nodiscard const void* Buffer<1>::view() const noexcept {
         return _handle.mapped;
     }
@@ -42,18 +46,18 @@ namespace qz::gfx {
         };
     }
 
-    qz_nodiscard Buffer<> Buffer<>::allocate(const Context& context, meta::uniform_buffer_tag_t, std::size_t size) noexcept {
+    qz_nodiscard Buffer<> Buffer<>::allocate(const Context& context, std::size_t size, meta::uniform_buffer_tag_t) noexcept {
         Buffer<> buffer{};
         for (auto& each : buffer._handles) {
-            each = Buffer<1>::allocate(context, meta::uniform_buffer, size);
+            each = Buffer<1>::allocate(context, size, meta::uniform_buffer);
         }
         return buffer;
     }
 
-    qz_nodiscard Buffer<> Buffer<>::allocate(const Context& context, meta::storage_buffer_tag_t, std::size_t size) noexcept {
+    qz_nodiscard Buffer<> Buffer<>::allocate(const Context& context, std::size_t size, meta::storage_buffer_tag_t) noexcept {
         Buffer<> buffer{};
         for (auto& each : buffer._handles) {
-            each = Buffer<1>::allocate(context, meta::storage_buffer, size);
+            each = Buffer<1>::allocate(context, size, meta::storage_buffer);
         }
         return buffer;
     }
@@ -68,6 +72,12 @@ namespace qz::gfx {
     void Buffer<>::write(const void* data, std::size_t size) noexcept {
         for (auto& each : _handles) {
             each.write(data, size);
+        }
+    }
+
+    void Buffer<>::write(const void* data, meta::whole_size_tag_t tag) noexcept {
+        for (auto& each : _handles) {
+            each.write(data, tag);
         }
     }
 

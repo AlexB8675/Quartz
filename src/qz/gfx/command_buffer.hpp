@@ -59,7 +59,9 @@ namespace qz::gfx {
         CommandBuffer& end_render_pass() noexcept;
         CommandBuffer& copy_image(const Image&, const Image&) noexcept;
         CommandBuffer& copy_buffer(const StaticBuffer&, const StaticBuffer&) noexcept;
+        CommandBuffer& copy_buffer_to_image(const StaticBuffer&, const Image&) noexcept;
         CommandBuffer& transfer_ownership(const BufferMemoryBarrier&, const Queue&, const Queue&) noexcept;
+        CommandBuffer& transfer_ownership(const ImageMemoryBarrier&, const Queue&, const Queue&) noexcept;
         CommandBuffer& insert_layout_transition(const ImageMemoryBarrier&) noexcept;
         void end() noexcept;
     };

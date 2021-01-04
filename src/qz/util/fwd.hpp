@@ -15,10 +15,12 @@ namespace qz::gfx {
     struct StaticMesh;
     class Queue;
     struct DescriptorBinding;
+    struct DescriptorImageInfo;
     template <size_t>
     class DescriptorSet;
     template <size_t>
     class Buffer;
+    class StaticTexture;
 } // namespace qz::gfx
 
 namespace qz::meta {

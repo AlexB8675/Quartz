@@ -32,7 +32,9 @@ namespace qz::gfx {
         std::unique_ptr<Queue> transfer;
         VkCommandPool main_pool;
         std::vector<VkCommandPool> transfer_pools;
+        std::vector<VkCommandPool> transient_pools;
         VkDescriptorPool descriptor_pool;
+        VkSampler default_sampler;
 
         qz_nodiscard static Context create(const Settings& = {}) noexcept;
         static void destroy(Context&) noexcept;

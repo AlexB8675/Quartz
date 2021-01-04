@@ -48,6 +48,8 @@ namespace qz::gfx {
         present_info.pSwapchains = &swapchain.handle;
         present_info.pImageIndices = &image;
         present_info.pResults = &present_result;
+
+        std::lock_guard<std::mutex> lock(_mutex);
         qz_vulkan_check(vkQueuePresentKHR(_handle, &present_info));
         qz_vulkan_check(present_result);
     }

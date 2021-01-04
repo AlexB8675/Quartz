@@ -1,4 +1,4 @@
-#include <qz/gfx/static_buffer.hpp>
+#include <qz/gfx/static_texture.hpp>
 #include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/assets.hpp>
 
@@ -26,38 +26,60 @@ namespace qz::assets {
     template <>
     qz_nodiscard gfx::StaticMesh& from_handle(meta::Handle<gfx::StaticMesh> handle) noexcept {
         std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
-        qz_assert(0 <= handle.index && handle.index < assets<gfx::StaticMesh>.size(), "invalid mesh handle");
         return assets<gfx::StaticMesh>[handle.index].first;
     }
 
     template <>
     qz_nodiscard bool is_ready(meta::Handle<gfx::StaticMesh> handle) noexcept {
         std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
-        qz_assert(0 <= handle.index && handle.index < assets<gfx::StaticMesh>.size(), "invalid mesh handle");
         return assets<gfx::StaticMesh>[handle.index].second;
     }
 
     template <>
     void finalize(meta::Handle<gfx::StaticMesh> handle, gfx::StaticMesh&& data) noexcept {
         std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
-        qz_assert(0 <= handle.index && handle.index < assets<gfx::StaticMesh>.size(), "invalid mesh handle");
         assets<gfx::StaticMesh>[handle.index] = {
             data, true
         };
     }
 
+
     template <>
-    void wait_all<gfx::StaticMesh>() noexcept {
-        while (!std::all_of(assets<gfx::StaticMesh>.begin(), assets<gfx::StaticMesh>.end(), [](const auto& each) {
-            return each.second;
-        }));
+    qz_nodiscard meta::Handle<gfx::StaticTexture> emplace_empty() noexcept {
+        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
+        assets<gfx::StaticTexture>.emplace_back();
+        return { assets<gfx::StaticTexture>.size() - 1 };
+    }
+
+    template <>
+    qz_nodiscard gfx::StaticTexture& from_handle(meta::Handle<gfx::StaticTexture> handle) noexcept {
+        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
+        return assets<gfx::StaticTexture>[handle.index].first;
+    }
+
+    template <>
+    qz_nodiscard bool is_ready(meta::Handle<gfx::StaticTexture> handle) noexcept {
+        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
+        return assets<gfx::StaticTexture>[handle.index].second;
+    }
+
+    template <>
+    void finalize(meta::Handle<gfx::StaticTexture> handle, gfx::StaticTexture&& data) noexcept {
+        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
+        assets<gfx::StaticTexture>[handle.index] = {
+            data, true
+        };
     }
 
     void free_all_resources(const gfx::Context& context) noexcept {
-        for (auto& [data, _] : assets<gfx::StaticMesh>) {
-            gfx::StaticBuffer::destroy(context, data.geometry);
-            gfx::StaticBuffer::destroy(context, data.indices);
+        for (auto& [mesh, _] : assets<gfx::StaticMesh>) {
+            gfx::StaticMesh::destroy(context, mesh);
         }
         assets<gfx::StaticMesh>.clear();
+
+        for (auto& [texture, _] : assets<gfx::StaticTexture>) {
+            gfx::StaticTexture::destroy(context, texture);
+        }
+        assets<gfx::StaticTexture>.clear();
     }
 } // namespace qz::assets
