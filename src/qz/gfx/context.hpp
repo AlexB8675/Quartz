@@ -1,10 +1,9 @@
 #pragma once
 
+#include <qz/gfx/task_manager.hpp>
 
 #include <qz/util/macros.hpp>
 #include <qz/util/fwd.hpp>
-
-#include <ftl/task_scheduler.h>
 
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
@@ -27,7 +26,7 @@ namespace qz::gfx {
         VkPhysicalDevice gpu;
         VkDevice device;
         VmaAllocator allocator;
-        std::unique_ptr<ftl::TaskScheduler> scheduler;
+        std::unique_ptr<TaskManager> task_manager;
         std::unique_ptr<Queue> graphics;
         std::unique_ptr<Queue> transfer;
         VkCommandPool main_pool;
@@ -39,4 +38,6 @@ namespace qz::gfx {
         qz_nodiscard static Context create(const Settings& = {}) noexcept;
         static void destroy(Context&) noexcept;
     };
+
+    void poll_transfers(const Context&) noexcept;
 } // namespace qz::gfx

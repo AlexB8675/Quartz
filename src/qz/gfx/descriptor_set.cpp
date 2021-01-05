@@ -51,7 +51,7 @@ namespace qz::gfx {
     void DescriptorSet<1>::bind(const Context& context, DescriptorSet<1>& set, const DescriptorBinding& binding, const Buffer<1>& buffer) noexcept {
         const auto descriptor = buffer.info();
         auto& bound = set._bound[binding];
-        if (bound.index() != 0) {
+        if (bound.index() != 0) [[unlikely]] {
             bound.emplace<VkDescriptorBufferInfo>();
         }
 
@@ -81,7 +81,7 @@ namespace qz::gfx {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
         auto& bound = set._bound[binding];
-        if (bound.index() != 1) {
+        if (bound.index() != 1) [[unlikely]] {
             bound.emplace<DescriptorImageInfo>();
         }
 

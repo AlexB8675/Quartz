@@ -20,6 +20,7 @@ namespace qz::gfx {
     class DescriptorSet;
     template <size_t>
     class Buffer;
+    class TaskManager;
     class StaticTexture;
 } // namespace qz::gfx
 

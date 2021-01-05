@@ -70,7 +70,7 @@ add_executable(quartz
     src/qz/util/hash.hpp
     src/qz/util/macros.hpp
 
-    src/main.cpp)
+    src/main.cpp src/qz/gfx/task_manager.cpp src/qz/gfx/task_manager.hpp)
 
 target_compile_definitions(quartz PUBLIC
 

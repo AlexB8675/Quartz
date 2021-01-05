@@ -126,7 +126,7 @@ int main() {
     auto buffer = gfx::Buffer<>::allocate(context, sizeof(Camera), meta::uniform_buffer);
 
     std::size_t frame_count = 0;
-    double delta_time = 0, last_frame = 00;
+    double delta_time = 0, last_frame = 0;
     while (!window.should_close()) {
         auto [command_buffer, frame] = gfx::acquire_next_frame(renderer, context);
         ++frame_count;
@@ -187,6 +187,7 @@ int main() {
             .end();
 
         gfx::present_frame(renderer, context, command_buffer, frame, render_pass.sync_stage());
+        gfx::poll_transfers(context);
         gfx::poll_events();
     }
 

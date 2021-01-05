@@ -1,4 +1,5 @@
 #include <qz/gfx/command_buffer.hpp>
+#include <qz/gfx/task_manager.hpp>
 #include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/context.hpp>
 #include <qz/gfx/assets.hpp>
@@ -26,7 +27,7 @@ namespace qz::gfx {
             std::move(info.indices),
         };
 
-        context.scheduler->AddTask(ftl::Task{
+        context.task_manager->handle().AddTask(ftl::Task{
             .Function = +[](ftl::TaskScheduler* scheduler, void* ptr) {
                 const auto* task_data = static_cast<const TaskData*>(ptr);
                 const auto thread_index = scheduler->GetCurrentThreadIndex();
@@ -108,18 +109,24 @@ namespace qz::gfx {
                 VkFence request_done;
                 qz_vulkan_check(vkCreateFence(context.device, &fence_create_info, nullptr, &request_done));
                 context.graphics->submit(ownership_cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, transfer_done, nullptr, request_done);
-                while (vkGetFenceStatus(context.device, request_done) != VK_SUCCESS);
-                assets::finalize(task_data->handle, {
-                    geometry,
-                    indices
+                context.task_manager->insert({
+                    .poll = [&context, request_done]() {
+                        return vkGetFenceStatus(context.device, request_done);
+                    },
+                    .cleanup = [=, &context]() mutable {
+                        assets::finalize(task_data->handle, {
+                            geometry,
+                            indices
+                        });
+                        vkDestroySemaphore(context.device, transfer_done, nullptr);
+                        vkDestroyFence(context.device, request_done, nullptr);
+                        StaticBuffer::destroy(context, vertex_staging);
+                        StaticBuffer::destroy(context, index_staging);
+                        CommandBuffer::destroy(context, ownership_cmd);
+                        CommandBuffer::destroy(context, transfer_cmd);
+                        delete task_data;
+                    }
                 });
-                vkDestroySemaphore(context.device, transfer_done, nullptr);
-                vkDestroyFence(context.device, request_done, nullptr);
-                StaticBuffer::destroy(context, vertex_staging);
-                StaticBuffer::destroy(context, index_staging);
-                CommandBuffer::destroy(context, ownership_cmd);
-                CommandBuffer::destroy(context, transfer_cmd);
-                delete task_data;
             },
             .ArgData = task_data
         }, ftl::TaskPriority::High);

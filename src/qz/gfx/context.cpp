@@ -288,7 +288,7 @@ namespace qz::gfx {
         qz_vulkan_check(vmaCreateAllocator(&allocator_create_info, &context.allocator));
 
         // Initialize FTL scheduler
-        (context.scheduler = std::make_unique<ftl::TaskScheduler>())->Init({
+        (context.task_manager = std::make_unique<TaskManager>())->handle().Init({
             .Behavior = ftl::EmptyQueueBehavior::Sleep
         });
 
@@ -299,13 +299,14 @@ namespace qz::gfx {
         command_pool_create_info.queueFamilyIndex = context.graphics->family();
         qz_vulkan_check(vkCreateCommandPool(context.device, &command_pool_create_info, nullptr, &context.main_pool));
 
+        const auto thread_count = context.task_manager->handle().GetThreadCount();
         // Create dedicated transfer pools for each thread.
         VkCommandPoolCreateInfo transfer_pool_create_info{};
         transfer_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         transfer_pool_create_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         transfer_pool_create_info.queueFamilyIndex = context.transfer->family();
-        context.transfer_pools.reserve(context.scheduler->GetThreadCount());
-        for (std::size_t i = 0; i < context.scheduler->GetThreadCount(); ++i) {
+        context.transfer_pools.reserve(thread_count);
+        for (std::size_t i = 0; i < thread_count; ++i) {
             qz_vulkan_check(vkCreateCommandPool(context.device, &transfer_pool_create_info, nullptr, &context.transfer_pools.emplace_back()));
         }
 
@@ -314,8 +315,8 @@ namespace qz::gfx {
         transfer_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         transfer_pool_create_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         transfer_pool_create_info.queueFamilyIndex = context.graphics->family();
-        context.transfer_pools.reserve(context.scheduler->GetThreadCount());
-        for (std::size_t i = 0; i < context.scheduler->GetThreadCount(); ++i) {
+        context.transfer_pools.reserve(thread_count);
+        for (std::size_t i = 0; i < thread_count; ++i) {
             qz_vulkan_check(vkCreateCommandPool(context.device, &transfer_pool_create_info, nullptr, &context.transient_pools.emplace_back()));
         }
 
@@ -376,5 +377,9 @@ namespace qz::gfx {
 #endif
         vkDestroyInstance(context.instance, nullptr);
         context = {};
+    }
+
+    void poll_transfers(const Context& context) noexcept {
+        context.task_manager->tick();
     }
 } // namespace qz::gfx
