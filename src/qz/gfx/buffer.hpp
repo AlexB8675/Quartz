@@ -16,7 +16,7 @@ namespace qz::gfx {
 
     template <>
     class Buffer<1> {
-        StaticBuffer _handle;
+        StaticBuffer _buffer;
     public:
         qz_nodiscard static Buffer<1> from_raw(StaticBuffer&&) noexcept;
         qz_nodiscard static Buffer<1> allocate(const Context&, std::size_t, meta::uniform_buffer_tag_t) noexcept;

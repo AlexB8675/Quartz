@@ -11,14 +11,15 @@ namespace qz::gfx {
                lhs.range  != rhs.range;
     }
 
-    qz_nodiscard static bool operator !=(DescriptorImageInfo lhs, DescriptorImageInfo rhs) noexcept {
-        return lhs.handle != rhs.handle ||
-               lhs.index  != rhs.index;
+    qz_nodiscard static bool operator !=(VkDescriptorImageInfo lhs, VkDescriptorImageInfo rhs) noexcept {
+        return lhs.imageView   != rhs.imageView ||
+               lhs.imageLayout != rhs.imageLayout;
     }
 
     qz_nodiscard DescriptorSet<1> DescriptorSet<1>::from_raw(VkDescriptorSet handle) noexcept {
-        DescriptorSet<1> set{};
+        DescriptorSet set{};
         set._handle = handle;
+        set._bound.reserve(128);
         return set;
     }
 
@@ -51,12 +52,12 @@ namespace qz::gfx {
     void DescriptorSet<1>::bind(const Context& context, DescriptorSet<1>& set, const DescriptorBinding& binding, const Buffer<1>& buffer) noexcept {
         const auto descriptor = buffer.info();
         auto& bound = set._bound[binding];
-        if (bound.index() != 0) [[unlikely]] {
-            bound.emplace<VkDescriptorBufferInfo>();
-        }
+        auto* current = std::get_if<0>(&bound);
 
-        auto& current = std::get<0>(bound);
-        if (current != descriptor) [[unlikely]] {
+        if (!current) [[unlikely]] {
+            current = &bound.emplace<0>();
+        }
+        if (*current != descriptor) [[unlikely]] {
             VkWriteDescriptorSet update{};
             update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             update.pNext = nullptr;
@@ -66,27 +67,25 @@ namespace qz::gfx {
             update.descriptorCount = 1;
             update.descriptorType = binding.type;
             update.pImageInfo = nullptr;
-            update.pBufferInfo = &(current = descriptor);
+            update.pBufferInfo = &(*current = descriptor);
             update.pTexelBufferView = nullptr;
             vkUpdateDescriptorSets(context.device, 1, &update, 0, nullptr);
         }
-
     }
 
     void DescriptorSet<1>::bind(const Context& context, DescriptorSet<1>& set, const DescriptorBinding& binding, const StaticTexture& texture) noexcept {
-        const auto descriptor = texture.info();
-        const auto image_info = VkDescriptorImageInfo{
+        const auto descriptor = VkDescriptorImageInfo{
             .sampler = context.default_sampler,
-            .imageView = descriptor.handle,
+            .imageView = texture.view(),
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
         auto& bound = set._bound[binding];
-        if (bound.index() != 1) [[unlikely]] {
-            bound.emplace<DescriptorImageInfo>();
-        }
+        auto* current = std::get_if<1>(&bound);
 
-        auto& current = std::get<1>(bound);
-        if (current != descriptor) [[unlikely]] {
+        if (!current) [[unlikely]] {
+            current = &bound.emplace<1>();
+        }
+        if (*current != descriptor) [[unlikely]] {
             VkWriteDescriptorSet update{};
             update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             update.pNext = nullptr;
@@ -95,13 +94,11 @@ namespace qz::gfx {
             update.dstArrayElement = 0;
             update.descriptorCount = 1;
             update.descriptorType = binding.type;
-            update.pImageInfo = &image_info;
+            update.pImageInfo = &(*current = descriptor);
             update.pBufferInfo = nullptr;
             update.pTexelBufferView = nullptr;
             vkUpdateDescriptorSets(context.device, 1, &update, 0, nullptr);
-            current = descriptor;
         }
-
     }
 
     qz_nodiscard VkDescriptorSet DescriptorSet<1>::handle() const noexcept {
@@ -113,7 +110,7 @@ namespace qz::gfx {
     }
 
     qz_nodiscard DescriptorSet<> DescriptorSet<>::allocate(const Context& context, const DescriptorSetLayout& layout) noexcept {
-        DescriptorSet<> sets{};
+        DescriptorSet sets{};
         for (auto& each : sets._handles) {
             each = DescriptorSet<1>::allocate(context, layout);
         }

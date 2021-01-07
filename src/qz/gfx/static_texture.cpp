@@ -6,8 +6,6 @@
 #include <qz/gfx/assets.hpp>
 #include <qz/gfx/queue.hpp>
 
-#include <qz/meta/types.hpp>
-
 #include <qz/util/file_view.hpp>
 
 #include <stb_image.h>
@@ -19,10 +17,9 @@ namespace qz::gfx {
         std::string_view path;
     };
 
-    qz_nodiscard StaticTexture StaticTexture::from_raw(const Image& handle, std::size_t id) noexcept {
+    qz_nodiscard StaticTexture StaticTexture::from_raw(const Image& handle) noexcept {
         StaticTexture texture{};
         texture._handle = handle;
-        texture._index = id;
         return texture;
     }
 
@@ -37,7 +34,6 @@ namespace qz::gfx {
     }
 
     qz_nodiscard meta::Handle<StaticTexture> StaticTexture::request(const Context& context, std::string_view path) noexcept {
-        static std::atomic<std::size_t> index = 0;
         const auto result = assets::emplace_empty<StaticTexture>();
         const auto task_data = new TaskData{
             &context,
@@ -123,7 +119,7 @@ namespace qz::gfx {
                         return vkGetFenceStatus(context.device, request_done);
                     },
                     .cleanup = [=, &context]() mutable {
-                        assets::finalize(task_data->result, StaticTexture::from_raw(image, index++));
+                        assets::finalize(task_data->result, StaticTexture::from_raw(image));
                         vkDestroySemaphore(context.device, transfer_done, nullptr);
                         vkDestroyFence(context.device, request_done, nullptr);
                         StaticBuffer::destroy(context, staging);
@@ -143,9 +139,7 @@ namespace qz::gfx {
         texture = {};
     }
 
-    qz_nodiscard DescriptorImageInfo StaticTexture::info() const noexcept {
-        return {
-            _handle.view, _index
-        };
+    qz_nodiscard VkImageView StaticTexture::view() const noexcept {
+        return _handle.view;
     }
 } // namespace qz::gfx

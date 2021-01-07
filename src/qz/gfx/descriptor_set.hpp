@@ -20,7 +20,7 @@ namespace qz::gfx {
     class DescriptorSet<1> {
         using BoundDescriptors =
             std::unordered_map<DescriptorBinding,
-                std::variant<VkDescriptorBufferInfo, DescriptorImageInfo>>;
+                std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>>;
         VkDescriptorSet _handle;
         BoundDescriptors _bound;
     public:
