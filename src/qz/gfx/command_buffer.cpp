@@ -108,11 +108,6 @@ namespace qz::gfx {
         return *this;
     }
 
-    CommandBuffer& CommandBuffer::bind_push_constants(VkPipelineStageFlags flags, std::size_t size, const void* data) noexcept {
-        vkCmdPushConstants(_handle, _active_pipeline->layout(), flags, 0, size, data);
-        return *this;
-    }
-
     CommandBuffer& CommandBuffer::bind_vertex_buffer(const StaticBuffer& vertex) noexcept {
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(_handle, 0, 1, &vertex.handle, &offset);
@@ -137,13 +132,17 @@ namespace qz::gfx {
         return *this;
     }
 
+    CommandBuffer& CommandBuffer::push_constants(VkPipelineStageFlags flags, std::size_t size, const void* data) noexcept {
+        vkCmdPushConstants(_handle, _active_pipeline->layout(), flags, 0, size, data);
+        return *this;
+    }
+
     CommandBuffer& CommandBuffer::draw(std::uint32_t vertices,
                                        std::uint32_t instances,
                                        std::uint32_t first_vertex,
                                        std::uint32_t first_instance) noexcept {
         if (_ready) {
             vkCmdDraw(_handle, vertices, instances, first_vertex, first_instance);
-            _ready = false;
         }
         return *this;
     }
@@ -154,7 +153,6 @@ namespace qz::gfx {
                                                std::uint32_t first_instance) noexcept {
         if (_ready) {
             vkCmdDrawIndexed(_handle, indices, instances, first_index, 0, first_instance);
-            _ready = false;
         }
         return *this;
     }

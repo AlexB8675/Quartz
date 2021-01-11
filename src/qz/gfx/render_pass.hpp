@@ -25,7 +25,6 @@ namespace qz::gfx {
         Image image;
         bool owning;
         std::string name;
-        ClearValue clear;
         std::vector<std::size_t> framebuffers;
         VkAttachmentDescription description;
         VkAttachmentReference reference;
@@ -49,6 +48,7 @@ namespace qz::gfx {
     class RenderPass {
         VkRenderPass _handle = nullptr;
         VkPipelineStageFlags _sync_stage;
+        std::vector<VkClearValue> _clears;
         std::vector<Attachment> _attachments;
         std::vector<VkFramebuffer> _framebuffers;
     public:
@@ -61,16 +61,10 @@ namespace qz::gfx {
         qz_nodiscard static RenderPass create(const Context&, CreateInfo&&) noexcept;
         static void destroy(const Context&, RenderPass&) noexcept;
 
-        qz_nodiscard Image& image(std::string_view) noexcept;
         qz_nodiscard const Image& image(std::string_view) const noexcept;
-
-        qz_nodiscard Attachment& attachment(std::string_view) noexcept;
         qz_nodiscard const Attachment& attachment(std::string_view) const noexcept;
-
-        qz_nodiscard VkFramebuffer& framebuffer(std::size_t) noexcept;
         qz_nodiscard const VkFramebuffer& framebuffer(std::size_t) const noexcept;
-
-        qz_nodiscard std::vector<VkClearValue> clears() const noexcept;
+        qz_nodiscard const std::vector<VkClearValue>& clears() const noexcept;
         qz_nodiscard VkExtent2D extent() const noexcept;
         qz_nodiscard VkRenderPass handle() const noexcept;
         qz_nodiscard VkPipelineStageFlags sync_stage() const noexcept;

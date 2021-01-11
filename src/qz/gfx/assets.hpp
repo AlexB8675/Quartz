@@ -5,6 +5,8 @@
 
 #include <qz/meta/types.hpp>
 
+#include <vector>
+
 namespace qz::assets {
     template <typename T>
     qz_nodiscard meta::Handle<T> emplace_empty() noexcept;
@@ -21,6 +23,8 @@ namespace qz::assets {
     void free_all_resources(const gfx::Context&) noexcept;
 
     gfx::StaticTexture& default_texture() noexcept; // Externally synchronized
+
+    std::vector<VkDescriptorImageInfo> all_textures(const gfx::Context&) noexcept;
 
     template <typename T>
     void lock() noexcept;

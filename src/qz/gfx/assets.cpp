@@ -1,5 +1,6 @@
 #include <qz/gfx/static_texture.hpp>
 #include <qz/gfx/static_mesh.hpp>
+#include <qz/gfx/context.hpp>
 #include <qz/gfx/assets.hpp>
 
 #include <algorithm>
@@ -55,6 +56,28 @@ namespace qz::assets {
 
     gfx::StaticTexture& default_texture() noexcept {
         return assets<gfx::StaticTexture>[0].first;
+    }
+
+    std::vector<VkDescriptorImageInfo> all_textures(const gfx::Context& context) noexcept {
+        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
+        std::vector<VkDescriptorImageInfo> descriptors{};
+        descriptors.reserve(assets<gfx::StaticTexture>.size());
+        for (const auto& [texture, ready] : assets<gfx::StaticTexture>) {
+            if (ready) [[likely]] {
+                descriptors.push_back({
+                    .sampler = context.default_sampler,
+                    .imageView = texture.view(),
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                });
+            } else [[unlikely]] {
+                descriptors.push_back({
+                    .sampler = context.default_sampler,
+                    .imageView = default_texture().view(),
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                });
+            }
+        }
+        return descriptors;
     }
 
     template <typename T>

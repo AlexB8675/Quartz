@@ -180,13 +180,13 @@ int main() {
         }
     });
 
-    const auto container = gfx::StaticTexture::request(context, "../data/textures/container.jpg");
+    (void)gfx::StaticTexture::request(context, "../data/textures/container.jpg");
     auto set = gfx::DescriptorSet<>::allocate(context, pipeline.set(0));
     auto buffer = gfx::Buffer<>::allocate(context, sizeof(Camera::Raw), meta::uniform_buffer);
 
     Camera camera;
     Camera::Raw camera_data = {
-        glm::perspective(glm::radians(90.0f), window.width() / (float)window.height(), 0.1f, 100.0f)
+        glm::perspective(glm::radians(60.0f), window.width() / (float)window.height(), 0.1f, 100.0f)
     };
 
     std::size_t frame_count = 0;
@@ -202,39 +202,41 @@ int main() {
         camera_data.view = camera.view();
         buffer[frame.index].write(&camera_data, meta::whole_size);
         gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["Camera"], buffer[frame.index]);
-        gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["container"], container);
+        gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["textures"], assets::all_textures(context));
 
+        std::uint32_t index = 1;
         command_buffer
             .begin()
-            .begin_render_pass(render_pass, 0)
-                .set_viewport(meta::full_viewport)
-                .set_scissor(meta::full_scissor)
-                .bind_pipeline(pipeline)
-                .bind_descriptor_set(set[frame.index])
-                .bind_static_mesh(triangle)
-                .draw_indexed(3, 1, 0, 0)
-                .bind_static_mesh(quad)
-                .draw_indexed(6, 1, 0, 0)
-            .end_render_pass()
-            .insert_layout_transition({
-                .image = frame.image,
-                .source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                .dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
-                .source_access = {},
-                .dest_access = VK_ACCESS_TRANSFER_WRITE_BIT,
-                .old_layout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-            })
-            .copy_image(render_pass.image("color"), *frame.image)
-            .insert_layout_transition({
-                .image = frame.image,
-                .source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
-                .dest_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                .source_access = VK_ACCESS_TRANSFER_WRITE_BIT,
-                .dest_access = {},
-                .old_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                .new_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-            })
+                .begin_render_pass(render_pass, 0)
+                    .set_viewport(meta::full_viewport)
+                    .set_scissor(meta::full_scissor)
+                    .bind_pipeline(pipeline)
+                    .bind_descriptor_set(set[frame.index])
+                    .push_constants(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(std::uint32_t), &index)
+                    .bind_static_mesh(triangle)
+                    .draw_indexed(3, 1, 0, 0)
+                    .bind_static_mesh(quad)
+                    .draw_indexed(6, 1, 0, 0)
+                .end_render_pass()
+                .insert_layout_transition({
+                    .image = frame.image,
+                    .source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    .source_access = {},
+                    .dest_access = VK_ACCESS_TRANSFER_WRITE_BIT,
+                    .old_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+                })
+                .copy_image(render_pass.image("color"), *frame.image)
+                .insert_layout_transition({
+                    .image = frame.image,
+                    .source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    .dest_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                    .source_access = VK_ACCESS_TRANSFER_WRITE_BIT,
+                    .dest_access = {},
+                    .old_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    .new_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+                })
             .end();
 
         gfx::present_frame(renderer, context, command_buffer, frame, render_pass.sync_stage());

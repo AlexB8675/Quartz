@@ -29,4 +29,5 @@ namespace std {
     };
 
     qz_make_hashable(qz::gfx::DescriptorBinding, dynamic, name, index, count, type, stage);
+    qz_make_hashable(VkDescriptorImageInfo, sampler, imageView, imageLayout);
 } // namespace std

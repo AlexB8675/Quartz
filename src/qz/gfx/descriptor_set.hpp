@@ -11,7 +11,6 @@
 
 #include <unordered_map>
 #include <variant>
-#include <span>
 
 namespace qz::gfx {
     template <std::size_t extent = meta::in_flight>
@@ -21,7 +20,7 @@ namespace qz::gfx {
     class DescriptorSet<1> {
         using BoundDescriptors =
             std::unordered_map<DescriptorBinding,
-                std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo, std::span<StaticTexture>>>;
+                std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo, std::size_t>>;
         VkDescriptorSet _handle;
         BoundDescriptors _bound;
     public:
@@ -31,7 +30,7 @@ namespace qz::gfx {
 
         static void bind(const Context&, DescriptorSet<1>&, const DescriptorBinding&, const Buffer<1>&) noexcept;
         static void bind(const Context&, DescriptorSet<1>&, const DescriptorBinding&, meta::Handle<StaticTexture>) noexcept;
-        static void bind(const Context&, DescriptorSet<1>&, const DescriptorBinding&, const std::vector<StaticTexture>&) noexcept;
+        static void bind(const Context&, DescriptorSet<1>&, const DescriptorBinding&, const std::vector<VkDescriptorImageInfo>&) noexcept;
         qz_nodiscard VkDescriptorSet handle() const noexcept;
         qz_nodiscard const VkDescriptorSet* ptr_handle() const noexcept;
     };

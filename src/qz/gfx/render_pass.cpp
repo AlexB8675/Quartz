@@ -31,7 +31,6 @@ namespace qz::gfx {
                 .image = each.image,
                 .owning = each.owning,
                 .name = std::move(each.name),
-                .clear = each.clear,
                 .framebuffers = std::move(each.framebuffers),
                 .description = {
                     .flags = {},
@@ -53,6 +52,7 @@ namespace qz::gfx {
             };
             attachments.emplace_back(attachment.description);
             render_pass._attachments.emplace_back(attachment);
+            render_pass._clears.emplace_back(each.clear.value());
             framebuffer_size = { attachment.image.width, attachment.image.height };
         }
 
@@ -172,21 +172,8 @@ namespace qz::gfx {
         render_pass._handle = nullptr;
     }
 
-    qz_nodiscard Image& RenderPass::image(std::string_view name) noexcept {
-        return attachment(name).image;
-    }
-
     qz_nodiscard const Image& RenderPass::image(std::string_view name) const noexcept {
         return attachment(name).image;
-    }
-
-    qz_nodiscard Attachment& RenderPass::attachment(std::string_view name) noexcept {
-        for (auto& attachment : _attachments) {
-            if (attachment.name == name) {
-                return attachment;
-            }
-        }
-        qz_force_assert("Attachment not found");
     }
 
     qz_nodiscard const Attachment& RenderPass::attachment(std::string_view name) const noexcept {
@@ -198,24 +185,13 @@ namespace qz::gfx {
         qz_force_assert("Attachment not found");
     }
 
-    qz_nodiscard VkFramebuffer& RenderPass::framebuffer(std::size_t idx) noexcept {
-        qz_assert(0 <= idx && idx < _framebuffers.size(), "framebuffer index not in range");
-        return _framebuffers[idx];
-    }
-
     qz_nodiscard const VkFramebuffer& RenderPass::framebuffer(std::size_t idx) const noexcept {
         qz_assert(0 <= idx && idx < _framebuffers.size(), "framebuffer index not in range");
         return _framebuffers[idx];
     }
 
-    qz_nodiscard std::vector<VkClearValue> RenderPass::clears() const noexcept {
-        std::vector<VkClearValue> result;
-        result.reserve(_attachments.size());
-        for (const auto& each : _attachments) {
-            result.emplace_back(each.clear.value());
-        }
-
-        return result;
+    qz_nodiscard const std::vector<VkClearValue>& RenderPass::clears() const noexcept {
+        return _clears;
     }
 
     qz_nodiscard VkExtent2D RenderPass::extent() const noexcept {

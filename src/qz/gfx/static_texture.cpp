@@ -46,25 +46,25 @@ namespace qz::gfx {
         auto transfer_cmd = CommandBuffer::allocate(context, context.transfer_pools[thread_index]);
         transfer_cmd
             .begin()
-            .insert_layout_transition({
-                .image = &image,
-                .source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                .dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
-                .source_access = {},
-                .dest_access = VK_ACCESS_TRANSFER_WRITE_BIT,
-                .old_layout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-            })
-            .copy_buffer_to_image(staging, image)
-            .transfer_ownership({
-                .image = &image,
-                .source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
-                .dest_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                .source_access = VK_ACCESS_TRANSFER_WRITE_BIT,
-                .dest_access = {},
-                .old_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                .new_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-            }, *context.transfer, *context.graphics)
+                .insert_layout_transition({
+                    .image = &image,
+                    .source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    .dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    .source_access = {},
+                    .dest_access = VK_ACCESS_TRANSFER_WRITE_BIT,
+                    .old_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+                })
+                .copy_buffer_to_image(staging, image)
+                .transfer_ownership({
+                    .image = &image,
+                    .source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    .dest_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    .source_access = VK_ACCESS_TRANSFER_WRITE_BIT,
+                    .dest_access = {},
+                    .old_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    .new_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                }, *context.transfer, *context.graphics)
             .end();
 
         VkSemaphoreCreateInfo transfer_semaphore_info{};
@@ -76,15 +76,15 @@ namespace qz::gfx {
         auto ownership_cmd = CommandBuffer::allocate(context, context.transient_pools[thread_index]);
         ownership_cmd
             .begin()
-            .transfer_ownership({
-                .image = &image,
-                .source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
-                .dest_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                .source_access = {},
-                .dest_access = VK_ACCESS_SHADER_READ_BIT,
-                .old_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                .new_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-            }, *context.transfer, *context.graphics)
+                .transfer_ownership({
+                    .image = &image,
+                    .source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    .dest_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    .source_access = {},
+                    .dest_access = VK_ACCESS_SHADER_READ_BIT,
+                    .old_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    .new_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                }, *context.transfer, *context.graphics)
             .end();
         VkFenceCreateInfo fence_create_info{};
         fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
