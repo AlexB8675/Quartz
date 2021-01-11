@@ -13,8 +13,19 @@ namespace qz::gfx {
     }
 
     qz_nodiscard static bool operator !=(VkDescriptorImageInfo lhs, VkDescriptorImageInfo rhs) noexcept {
-        return lhs.imageView   != rhs.imageView ||
-               lhs.imageLayout != rhs.imageLayout;
+        return lhs.imageView != rhs.imageView;
+    }
+
+    qz_nodiscard static bool operator !=(std::span<StaticTexture> lhs, const std::vector<StaticTexture>& rhs) noexcept {
+        if (lhs.size() != rhs.size()) {
+            return true;
+        }
+        for (std::size_t i = 0; i < lhs.size(); ++i) {
+            if (lhs[i].view() != rhs[i].view()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     qz_nodiscard DescriptorSet<1> DescriptorSet<1>::from_raw(VkDescriptorSet handle) noexcept {
@@ -75,11 +86,16 @@ namespace qz::gfx {
     }
 
     void DescriptorSet<1>::bind(const Context& context, DescriptorSet<1>& set, const DescriptorBinding& binding, meta::Handle<StaticTexture> texture) noexcept {
-        const auto descriptor = VkDescriptorImageInfo{
+        assets::lock<StaticTexture>();
+        auto descriptor = VkDescriptorImageInfo{
             .sampler = context.default_sampler,
-            .imageView = assets::is_ready(texture) ? assets::from_handle(texture).view() : assets::default_texture().view(),
+            .imageView = assets::default_texture().view(),
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
+        if (assets::is_ready(texture)) [[likely]] {
+            descriptor.imageView = assets::from_handle(texture).view();
+        }
+        assets::unlock<StaticTexture>();
         auto& bound = set._bound[binding];
         auto* current = std::get_if<1>(&bound);
 
@@ -100,6 +116,45 @@ namespace qz::gfx {
             update.pTexelBufferView = nullptr;
             vkUpdateDescriptorSets(context.device, 1, &update, 0, nullptr);
         }
+    }
+
+    void DescriptorSet<1>::bind(const Context& context, DescriptorSet<1>& set, const DescriptorBinding& binding, const std::vector<StaticTexture>& textures) noexcept {
+        /*auto& bound = set._bound[binding];
+        auto* current = std::get_if<2>(&bound);
+
+        if (!current) [[unlikely]] {
+            current = &bound.emplace<2>();
+        }
+        if (*current != textures) [[unlikely]] {
+            std::vector<VkDescriptorImageInfo> descriptors{};
+            descriptors.reserve(textures.size());
+            for (const auto& texture : textures) {
+                assets::lock<StaticTexture>();
+                auto descriptor = VkDescriptorImageInfo{
+                    .sampler = context.default_sampler,
+                    .imageView = assets::default_texture().view(),
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                };
+                if (assets::is_ready(texture)) [[likely]] {
+                    descriptor.imageView = assets::from_handle(texture).view();
+                }
+                assets::unlock<StaticTexture>();
+                descriptors.emplace_back(texture.view());
+            }
+
+            VkWriteDescriptorSet update{};
+            update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            update.pNext = nullptr;
+            update.dstSet = set._handle;
+            update.dstBinding = binding.index;
+            update.dstArrayElement = 0;
+            update.descriptorCount = descriptors.size();
+            update.descriptorType = binding.type;
+            update.pImageInfo = descriptors.data();
+            update.pBufferInfo = nullptr;
+            update.pTexelBufferView = nullptr;
+            vkUpdateDescriptorSets(context.device, 1, &update, 0, nullptr);
+        }*/
     }
 
     qz_nodiscard VkDescriptorSet DescriptorSet<1>::handle() const noexcept {

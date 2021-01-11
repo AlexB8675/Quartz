@@ -16,57 +16,27 @@ namespace qz::assets {
     template <typename T>
     static std::mutex mutex;
 
-    template <>
-    qz_nodiscard meta::Handle<gfx::StaticMesh> emplace_empty() noexcept {
-        std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
-        assets<gfx::StaticMesh>.emplace_back();
-        return { assets<gfx::StaticMesh>.size() - 1 };
+    template <typename T>
+    qz_nodiscard meta::Handle<T> emplace_empty() noexcept {
+        std::lock_guard<std::mutex> lock(mutex<T>);
+        assets<T>.emplace_back();
+        return { assets<T>.size() - 1 };
     }
 
-    template <>
-    qz_nodiscard gfx::StaticMesh from_handle(meta::Handle<gfx::StaticMesh> handle) noexcept {
-        std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
-        return assets<gfx::StaticMesh>[handle.index].first;
+    template <typename T>
+    qz_nodiscard T& from_handle(meta::Handle<T> handle) noexcept {
+        return assets<T>[handle.index].first;
     }
 
-    template <>
-    qz_nodiscard bool is_ready(meta::Handle<gfx::StaticMesh> handle) noexcept {
-        std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
-        return assets<gfx::StaticMesh>[handle.index].second;
+    template <typename T>
+    qz_nodiscard bool is_ready(meta::Handle<T> handle) noexcept {
+        return assets<T>[handle.index].second;
     }
 
-    template <>
-    void finalize(meta::Handle<gfx::StaticMesh> handle, gfx::StaticMesh&& data) noexcept {
-        std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
-        assets<gfx::StaticMesh>[handle.index] = {
-            data, true
-        };
-    }
-
-
-    template <>
-    qz_nodiscard meta::Handle<gfx::StaticTexture> emplace_empty() noexcept {
-        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
-        assets<gfx::StaticTexture>.emplace_back();
-        return { assets<gfx::StaticTexture>.size() - 1 };
-    }
-
-    template <>
-    qz_nodiscard gfx::StaticTexture from_handle(meta::Handle<gfx::StaticTexture> handle) noexcept {
-        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
-        return assets<gfx::StaticTexture>[handle.index].first;
-    }
-
-    template <>
-    qz_nodiscard bool is_ready(meta::Handle<gfx::StaticTexture> handle) noexcept {
-        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
-        return assets<gfx::StaticTexture>[handle.index].second;
-    }
-
-    template <>
-    void finalize(meta::Handle<gfx::StaticTexture> handle, gfx::StaticTexture&& data) noexcept {
-        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
-        assets<gfx::StaticTexture>[handle.index] = {
+    template <typename T>
+    void finalize(meta::Handle<T> handle, T&& data) noexcept {
+        std::lock_guard<std::mutex> lock(mutex<T>);
+        assets<T>[handle.index] = {
             data, true
         };
     }
@@ -84,7 +54,34 @@ namespace qz::assets {
     }
 
     gfx::StaticTexture& default_texture() noexcept {
-        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
         return assets<gfx::StaticTexture>[0].first;
     }
+
+    template <typename T>
+    void lock() noexcept {
+        mutex<T>.lock();
+    }
+
+    template <typename T>
+    void unlock() noexcept {
+        mutex<T>.unlock();
+    }
+    
+    template meta::Handle<gfx::StaticMesh>    emplace_empty() noexcept;
+    template meta::Handle<gfx::StaticTexture> emplace_empty() noexcept;
+
+    template gfx::StaticMesh&    from_handle(meta::Handle<gfx::StaticMesh>)    noexcept;
+    template gfx::StaticTexture& from_handle(meta::Handle<gfx::StaticTexture>) noexcept;
+
+    template bool is_ready(meta::Handle<gfx::StaticMesh>)    noexcept;
+    template bool is_ready(meta::Handle<gfx::StaticTexture>) noexcept;
+
+    template void finalize(meta::Handle<gfx::StaticMesh>, gfx::StaticMesh&&)       noexcept;
+    template void finalize(meta::Handle<gfx::StaticTexture>, gfx::StaticTexture&&) noexcept;
+
+    template void lock<gfx::StaticMesh>()    noexcept;
+    template void lock<gfx::StaticTexture>() noexcept;
+
+    template void unlock<gfx::StaticMesh>()    noexcept;
+    template void unlock<gfx::StaticTexture>() noexcept;
 } // namespace qz::assets

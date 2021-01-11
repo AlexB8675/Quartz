@@ -15,9 +15,9 @@ uniform Camera {
     mat4 view;
 };
 
-/*layout (push_constant) uniform Constants {
+layout (push_constant) uniform Constants {
     uint texture_index;
-};*/
+};
 
 void main() {
     gl_Position = projection * view * vec4(ivertex, 1.0);

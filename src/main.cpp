@@ -207,25 +207,14 @@ int main() {
         command_buffer
             .begin()
             .begin_render_pass(render_pass, 0)
-            .set_viewport(meta::full_viewport)
-            .set_scissor(meta::full_scissor)
-            .bind_pipeline(pipeline)
-            .bind_descriptor_set(set[frame.index]);
-
-
-        if (assets::is_ready(triangle)) [[likely]] {
-            command_buffer
-                .bind_static_mesh(assets::from_handle(triangle))
-                .draw_indexed(3, 1, 0, 0);
-        }
-
-        if (assets::is_ready(quad)) [[likely]] {
-            command_buffer
-                .bind_static_mesh(assets::from_handle(quad))
-                .draw_indexed(6, 1, 0, 0);
-        }
-
-        command_buffer
+                .set_viewport(meta::full_viewport)
+                .set_scissor(meta::full_scissor)
+                .bind_pipeline(pipeline)
+                .bind_descriptor_set(set[frame.index])
+                .bind_static_mesh(triangle)
+                .draw_indexed(3, 1, 0, 0)
+                .bind_static_mesh(quad)
+                .draw_indexed(6, 1, 0, 0)
             .end_render_pass()
             .insert_layout_transition({
                 .image = frame.image,

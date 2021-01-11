@@ -5,6 +5,7 @@
 #include <qz/gfx/render_pass.hpp>
 #include <qz/gfx/pipeline.hpp>
 #include <qz/gfx/context.hpp>
+#include <qz/gfx/assets.hpp>
 #include <qz/gfx/queue.hpp>
 
 namespace qz::gfx {
@@ -123,16 +124,27 @@ namespace qz::gfx {
         return *this;
     }
 
-    CommandBuffer& CommandBuffer::bind_static_mesh(const StaticMesh& mesh) noexcept {
-        return bind_vertex_buffer(mesh.geometry).
-               bind_index_buffer(mesh.indices);
+    CommandBuffer& CommandBuffer::bind_static_mesh(meta::Handle<StaticMesh> handle) noexcept {
+        _ready = false;
+        assets::lock<StaticMesh>();
+        if (assets::is_ready(handle)) [[likely]] {
+            const auto& mesh = assets::from_handle(handle);
+            bind_vertex_buffer(mesh.geometry);
+            bind_index_buffer(mesh.indices);
+            _ready = true;
+        }
+        assets::unlock<StaticMesh>();
+        return *this;
     }
 
     CommandBuffer& CommandBuffer::draw(std::uint32_t vertices,
                                        std::uint32_t instances,
                                        std::uint32_t first_vertex,
                                        std::uint32_t first_instance) noexcept {
-        vkCmdDraw(_handle, vertices, instances, first_vertex, first_instance);
+        if (_ready) {
+            vkCmdDraw(_handle, vertices, instances, first_vertex, first_instance);
+            _ready = false;
+        }
         return *this;
     }
 
@@ -140,7 +152,10 @@ namespace qz::gfx {
                                                std::uint32_t instances,
                                                std::uint32_t first_index,
                                                std::uint32_t first_instance) noexcept {
-        vkCmdDrawIndexed(_handle, indices, instances, first_index, 0, first_instance);
+        if (_ready) {
+            vkCmdDrawIndexed(_handle, indices, instances, first_index, 0, first_instance);
+            _ready = false;
+        }
         return *this;
     }
 

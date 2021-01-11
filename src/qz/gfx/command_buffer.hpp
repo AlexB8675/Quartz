@@ -32,6 +32,7 @@ namespace qz::gfx {
         const Pipeline* _active_pipeline;
         VkCommandBuffer _handle;
         VkCommandPool _pool;
+        bool _ready;
     public:
         CommandBuffer() noexcept = default;
 
@@ -54,7 +55,7 @@ namespace qz::gfx {
         CommandBuffer& bind_push_constants(VkPipelineStageFlags, std::size_t, const void*) noexcept;
         CommandBuffer& bind_vertex_buffer(const StaticBuffer&) noexcept;
         CommandBuffer& bind_index_buffer(const StaticBuffer&) noexcept;
-        CommandBuffer& bind_static_mesh(const StaticMesh&) noexcept;
+        CommandBuffer& bind_static_mesh(meta::Handle<StaticMesh>) noexcept;
         CommandBuffer& draw(std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t) noexcept;
         CommandBuffer& draw_indexed(std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t) noexcept;
         CommandBuffer& end_render_pass() noexcept;

@@ -8,14 +8,12 @@ layout (location = 0) in VertexInput {
     vec2 uvs;
 };
 
-layout (set = 0, binding = 1) uniform sampler2D container;
-
-/*layout (set = 0, binding = 1) uniform sampler2D[] textures;
+layout (set = 0, binding = 1) uniform sampler2D[] textures;
 
 layout (push_constant) uniform Constants {
     uint texture_index;
-};*/
+};
 
 void main() {
-    fragment = vec4(texture(container, uvs).rgb, 1.0);
+    fragment = vec4(texture(textures[texture_index], uvs).rgb, 1.0);
 }
