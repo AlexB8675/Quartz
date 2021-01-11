@@ -58,7 +58,7 @@ qz_nodiscard bool operator ==(const type& rhs) const noexcept {                 
     #define qz_unreachable() __builtin_unreachable()
 #endif
 
-#define qz_force_assert(msg) (qz_assert(false, msg), qz_unreachable())
+#define qz_force_assert(msg) qz_assert(false, msg), qz_unreachable()
 #if defined(quartz_debug)
     #define qz_assert(expr, msg) assert((expr) && msg)
     #define qz_vulkan_check(expr) qz_assert((expr) == VK_SUCCESS, "result was not VK_SUCCESS")

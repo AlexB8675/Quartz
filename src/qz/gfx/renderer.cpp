@@ -1,3 +1,4 @@
+#include <qz/gfx/static_texture.hpp>
 #include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/render_pass.hpp>
 #include <qz/gfx/swapchain.hpp>
@@ -41,6 +42,9 @@ namespace qz::gfx {
             qz_vulkan_check(vkCreateSemaphore(context.device, &semaphore_create_info, nullptr, &renderer.gfx_done[i]));
             qz_vulkan_check(vkCreateFence(context.device, &fence_create_info, nullptr, &renderer.cmd_wait[i]));
         }
+
+        // Add default texture.
+        (void)StaticTexture::allocate(context, "../data/textures/default.png");
 
         return renderer;
     }

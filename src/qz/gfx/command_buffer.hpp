@@ -51,6 +51,7 @@ namespace qz::gfx {
         CommandBuffer& set_scissor(VkRect2D) noexcept;
         CommandBuffer& bind_pipeline(const Pipeline&) noexcept;
         CommandBuffer& bind_descriptor_set(const DescriptorSet<1>&) noexcept;
+        CommandBuffer& bind_push_constants(VkPipelineStageFlags, std::size_t, const void*) noexcept;
         CommandBuffer& bind_vertex_buffer(const StaticBuffer&) noexcept;
         CommandBuffer& bind_index_buffer(const StaticBuffer&) noexcept;
         CommandBuffer& bind_static_mesh(const StaticMesh&) noexcept;

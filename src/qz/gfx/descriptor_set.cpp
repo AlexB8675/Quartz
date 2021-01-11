@@ -3,6 +3,7 @@
 #include <qz/gfx/pipeline.hpp>
 #include <qz/gfx/context.hpp>
 #include <qz/gfx/buffer.hpp>
+#include <qz/gfx/assets.hpp>
 
 namespace qz::gfx {
     qz_nodiscard static bool operator !=(VkDescriptorBufferInfo lhs, VkDescriptorBufferInfo rhs) noexcept {
@@ -73,10 +74,10 @@ namespace qz::gfx {
         }
     }
 
-    void DescriptorSet<1>::bind(const Context& context, DescriptorSet<1>& set, const DescriptorBinding& binding, const StaticTexture& texture) noexcept {
+    void DescriptorSet<1>::bind(const Context& context, DescriptorSet<1>& set, const DescriptorBinding& binding, meta::Handle<StaticTexture> texture) noexcept {
         const auto descriptor = VkDescriptorImageInfo{
             .sampler = context.default_sampler,
-            .imageView = texture.view(),
+            .imageView = assets::is_ready(texture) ? assets::from_handle(texture).view() : assets::default_texture().view(),
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
         auto& bound = set._bound[binding];

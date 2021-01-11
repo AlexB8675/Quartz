@@ -29,7 +29,7 @@ namespace qz::gfx {
         static void destroy(const Context&, DescriptorSet<1>&) noexcept;
 
         static void bind(const Context&, DescriptorSet<1>&, const DescriptorBinding&, const Buffer<1>&) noexcept;
-        static void bind(const Context&, DescriptorSet<1>&, const DescriptorBinding&, const StaticTexture&) noexcept;
+        static void bind(const Context&, DescriptorSet<1>&, const DescriptorBinding&, const meta::Handle<StaticTexture>) noexcept;
         qz_nodiscard VkDescriptorSet handle() const noexcept;
         qz_nodiscard const VkDescriptorSet* ptr_handle() const noexcept;
     };

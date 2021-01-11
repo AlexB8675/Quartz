@@ -107,6 +107,11 @@ namespace qz::gfx {
         return *this;
     }
 
+    CommandBuffer& CommandBuffer::bind_push_constants(VkPipelineStageFlags flags, std::size_t size, const void* data) noexcept {
+        vkCmdPushConstants(_handle, _active_pipeline->layout(), flags, 0, size, data);
+        return *this;
+    }
+
     CommandBuffer& CommandBuffer::bind_vertex_buffer(const StaticBuffer& vertex) noexcept {
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(_handle, 0, 1, &vertex.handle, &offset);
@@ -119,7 +124,8 @@ namespace qz::gfx {
     }
 
     CommandBuffer& CommandBuffer::bind_static_mesh(const StaticMesh& mesh) noexcept {
-        return bind_vertex_buffer(mesh.geometry).bind_index_buffer(mesh.indices);
+        return bind_vertex_buffer(mesh.geometry).
+               bind_index_buffer(mesh.indices);
     }
 
     CommandBuffer& CommandBuffer::draw(std::uint32_t vertices,

@@ -16,14 +16,79 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+using namespace qz;
+
 struct Camera {
-    glm::mat4 projection;
-    glm::mat4 view;
+    struct Raw {
+        glm::mat4 projection;
+        glm::mat4 view;
+    };
+    glm::vec3 position = {0.0f, 0.0f, 2.0f };
+    glm::vec3 front = { 0.0f, 0.0f, -1.0f };
+    glm::vec3 up = { 0.0f, 1.0f, 0.0f };
+    glm::vec3 right = { 0.0f, 0.0f, 0.0f };
+    glm::vec3 world_up = { 0.0f, 1.0f, 0.0f };
+    float yaw = -90.0f;
+    float pitch = 0.0f;
+
+    void update(const gfx::Window& window, double delta_time) noexcept {
+        _process_keyboard(window, delta_time);
+        _process_mouse(window);
+
+        const auto cos_pitch = std::cos(glm::radians(pitch));
+        front = glm::normalize(glm::vec3{
+            std::cos(glm::radians(yaw)) * cos_pitch,
+            std::sin(glm::radians(pitch)),
+            std::sin(glm::radians(yaw)) * cos_pitch
+        });
+        right = glm::normalize(glm::cross(front, world_up));
+        up = glm::normalize(glm::cross(right, front));
+    }
+
+    qz_nodiscard glm::mat4 view() const noexcept {
+        return glm::lookAt(position, position + front, up);
+    }
+private:
+    void _process_keyboard(const gfx::Window& window, double delta_time) noexcept {
+        constexpr auto camera_speed = 1.5f;
+        const auto delta_movement = camera_speed * (float)delta_time;
+        if (window.get_key_state(gfx::Keys::W) == gfx::KeyState::pressed) {
+            position.x += std::cos(glm::radians(yaw)) * delta_movement;
+            position.z += std::sin(glm::radians(yaw)) * delta_movement;
+        }
+        if (window.get_key_state(gfx::Keys::S) == gfx::KeyState::pressed) {
+            position.x -= std::cos(glm::radians(yaw)) * delta_movement;
+            position.z -= std::sin(glm::radians(yaw)) * delta_movement;
+        }
+        if (window.get_key_state(gfx::Keys::A) == gfx::KeyState::pressed) {
+            position -= right * delta_movement;
+        }
+        if (window.get_key_state(gfx::Keys::D) == gfx::KeyState::pressed) {
+            position += right * delta_movement;
+        }
+        if (window.get_key_state(gfx::Keys::space) == gfx::KeyState::pressed) {
+            position -= world_up * delta_movement;
+        }
+        if (window.get_key_state(gfx::Keys::left_shift) == gfx::KeyState::pressed) {
+            position += world_up * delta_movement;
+        }
+    }
+
+    void _process_mouse(const gfx::Window& window) noexcept {
+        const auto [xoff, yoff] = window.get_mouse_offset();
+        yaw += (float)xoff;
+        pitch -= (float)yoff;
+
+        if (pitch > 89.9f) {
+            pitch = 89.9f;
+        }
+        if (pitch < -89.9f) {
+            pitch = -89.9f;
+        }
+    }
 };
 
 int main() {
-    using namespace qz;
-
     auto window = gfx::Window::create(1280, 720, "QuartzVk");
     auto context = gfx::Context::create();
     auto renderer = gfx::Renderer::create(context, window);
@@ -115,15 +180,14 @@ int main() {
         }
     });
 
-    const auto black = gfx::StaticTexture::allocate(context, "../data/textures/black.png");
     const auto container = gfx::StaticTexture::request(context, "../data/textures/container.jpg");
-
-    Camera camera{
-        glm::mat4(1.0f),
-        glm::mat4(1.0f),
-    };
     auto set = gfx::DescriptorSet<>::allocate(context, pipeline.set(0));
-    auto buffer = gfx::Buffer<>::allocate(context, sizeof(Camera), meta::uniform_buffer);
+    auto buffer = gfx::Buffer<>::allocate(context, sizeof(Camera::Raw), meta::uniform_buffer);
+
+    Camera camera;
+    Camera::Raw camera_data = {
+        glm::perspective(glm::radians(90.0f), window.width() / (float)window.height(), 0.1f, 100.0f)
+    };
 
     std::size_t frame_count = 0;
     double delta_time = 0, last_frame = 0;
@@ -135,13 +199,10 @@ int main() {
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
-        buffer[frame.index].write(&camera, meta::whole_size);
+        camera_data.view = camera.view();
+        buffer[frame.index].write(&camera_data, meta::whole_size);
         gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["Camera"], buffer[frame.index]);
-        if (assets::is_ready(container)) {
-            gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["container"], assets::from_handle(container));
-        } else {
-            gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["container"], assets::from_handle(black));
-        }
+        gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["container"], container);
 
         command_buffer
             .begin()
@@ -151,13 +212,14 @@ int main() {
             .bind_pipeline(pipeline)
             .bind_descriptor_set(set[frame.index]);
 
-        if (assets::is_ready(triangle)) {
+
+        if (assets::is_ready(triangle)) [[likely]] {
             command_buffer
                 .bind_static_mesh(assets::from_handle(triangle))
                 .draw_indexed(3, 1, 0, 0);
         }
 
-        if (assets::is_ready(quad)) {
+        if (assets::is_ready(quad)) [[likely]] {
             command_buffer
                 .bind_static_mesh(assets::from_handle(quad))
                 .draw_indexed(6, 1, 0, 0);
@@ -188,7 +250,8 @@ int main() {
 
         gfx::present_frame(renderer, context, command_buffer, frame, render_pass.sync_stage());
         gfx::poll_transfers(context);
-        gfx::poll_events();
+        window.poll_events();
+        camera.update(window, delta_time);
     }
 
     context.graphics->wait_idle();

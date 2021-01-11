@@ -33,7 +33,7 @@ namespace qz::gfx {
     }
 
     void Buffer<1>::write(const void* data, meta::whole_size_tag_t) noexcept {
-        write(data, _buffer.capacity);
+        std::memcpy(_buffer.mapped, data, _buffer.capacity);
     }
 
     qz_nodiscard const void* Buffer<1>::view() const noexcept {
@@ -75,9 +75,9 @@ namespace qz::gfx {
         }
     }
 
-    void Buffer<>::write(const void* data, meta::whole_size_tag_t tag) noexcept {
+    void Buffer<>::write(const void* data, meta::whole_size_tag_t) noexcept {
         for (auto& each : _handles) {
-            each.write(data, tag);
+            each.write(data, meta::whole_size);
         }
     }
 

@@ -37,7 +37,7 @@ namespace qz::gfx {
         VkPushConstantRange push_constant_range{};
         push_constant_range.offset = 0;
 
-        DescriptorBindings descriptor_types;
+        DescriptorBindings descriptor_bindings;
         std::vector<std::uint32_t> vertex_input_locations;
         std::map<std::size_t, DescriptorLayout> descriptor_layout;
         { // Vertex shader.
@@ -56,7 +56,7 @@ namespace qz::gfx {
                 const auto binding_idx = compiler.get_decoration(uniform_buffer.id, spv::DecorationBinding);
 
                 descriptor_layout[set_idx].push_back(
-                    descriptor_types[uniform_buffer.name] = {
+                    descriptor_bindings[uniform_buffer.name] = {
                         .dynamic = false,
                         .name    = uniform_buffer.name,
                         .index   = binding_idx,
@@ -117,11 +117,11 @@ namespace qz::gfx {
                         [binding_idx](const auto& each) {
                             return each.index == binding_idx;
                         })) != layout.end()) {
-                    descriptor_types[uniform_buffer.name].stage =
+                    descriptor_bindings[uniform_buffer.name].stage =
                         (it->stage |= VK_SHADER_STAGE_FRAGMENT_BIT);
                 } else {
                     layout.push_back(
-                        descriptor_types[uniform_buffer.name] = {
+                        descriptor_bindings[uniform_buffer.name] = {
                             .dynamic = false,
                             .name    = uniform_buffer.name,
                             .index   = binding_idx,
@@ -140,7 +140,7 @@ namespace qz::gfx {
                 const bool is_dynamic = is_array && image_type.array[0] == 0;
 
                 descriptor_layout[set_idx].push_back(
-                    descriptor_types[image.name] = {
+                    descriptor_bindings[image.name] = {
                         .dynamic = is_dynamic,
                         .name    = image.name,
                         .index   = binding_idx,
@@ -160,9 +160,10 @@ namespace qz::gfx {
         VkVertexInputBindingDescription vertex_binding_description{};
         vertex_binding_description.binding = 0;
         vertex_binding_description.stride =
-            std::accumulate(info.attributes.begin(), info.attributes.end(), 0u, [](const auto value, const auto attribute) noexcept {
-                return value + static_cast<std::underlying_type_t<decltype(attribute)>>(attribute);
-            });
+            std::accumulate(info.attributes.begin(), info.attributes.end(), 0u,
+                [](const auto value, const auto attribute) noexcept {
+                    return value + static_cast<std::underlying_type_t<decltype(attribute)>>(attribute);
+                });
         vertex_binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         std::vector<VkVertexInputAttributeDescription> vertex_attribute_descriptions;
@@ -344,7 +345,7 @@ namespace qz::gfx {
 
         Pipeline pipeline{};
         pipeline._handle = handle;
-        pipeline._bindings = std::move(descriptor_types);
+        pipeline._bindings = std::move(descriptor_bindings);
         pipeline._layout = layout;
         pipeline._descriptors = std::move(set_layouts);
         return pipeline;

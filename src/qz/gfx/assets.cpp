@@ -24,7 +24,7 @@ namespace qz::assets {
     }
 
     template <>
-    qz_nodiscard gfx::StaticMesh& from_handle(meta::Handle<gfx::StaticMesh> handle) noexcept {
+    qz_nodiscard gfx::StaticMesh from_handle(meta::Handle<gfx::StaticMesh> handle) noexcept {
         std::lock_guard<std::mutex> lock(mutex<gfx::StaticMesh>);
         return assets<gfx::StaticMesh>[handle.index].first;
     }
@@ -52,7 +52,7 @@ namespace qz::assets {
     }
 
     template <>
-    qz_nodiscard gfx::StaticTexture& from_handle(meta::Handle<gfx::StaticTexture> handle) noexcept {
+    qz_nodiscard gfx::StaticTexture from_handle(meta::Handle<gfx::StaticTexture> handle) noexcept {
         std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
         return assets<gfx::StaticTexture>[handle.index].first;
     }
@@ -81,5 +81,10 @@ namespace qz::assets {
             gfx::StaticTexture::destroy(context, texture);
         }
         assets<gfx::StaticTexture>.clear();
+    }
+
+    gfx::StaticTexture& default_texture() noexcept {
+        std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
+        return assets<gfx::StaticTexture>[0].first;
     }
 } // namespace qz::assets

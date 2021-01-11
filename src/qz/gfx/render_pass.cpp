@@ -115,7 +115,6 @@ namespace qz::gfx {
             dependency.srcAccessMask = each.source_access;
             dependency.dstAccessMask = each.dest_access;
             dependency.dependencyFlags = {};
-
             dependencies.emplace_back(dependency);
         }
 
