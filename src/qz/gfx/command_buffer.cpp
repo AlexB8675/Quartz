@@ -72,9 +72,9 @@ namespace qz::gfx {
         const auto extent = _active_pass->extent();
         VkViewport viewport{};
         viewport.x = 0;
-        viewport.y = 0;
+        viewport.y = extent.height;
         viewport.width = extent.width;
-        viewport.height = extent.height;
+        viewport.height = -(int32_t)extent.height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         set_viewport(viewport);

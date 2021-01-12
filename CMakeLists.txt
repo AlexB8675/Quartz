@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 project(quartz CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-
 find_package(Vulkan REQUIRED)
 
 # Disable GLFW docs, tests and examples builds and forces to use statically linked vulkan loader.
@@ -24,7 +22,23 @@ set(FTL_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
 set(FTL_CPP_17 ON CACHE BOOL "" FORCE)
 add_subdirectory(ext/FiberTaskingLib)
 
+# Disable all annoying ASSIMP shit, tests, exporters and so on.
+set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_GLTF_IMPORTER ON CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_3DS_IMPORTER ON CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+add_subdirectory(ext/assimp)
+
+if (WIN32)
+    target_compile_options(assimp PRIVATE /EHsc)
+endif()
+
 add_subdirectory(ext/glm)
+
+set(CMAKE_CXX_STANDARD 20)
 
 add_executable(quartz
     src/qz/gfx/assets.cpp
@@ -52,9 +66,13 @@ add_executable(quartz
     src/qz/gfx/static_buffer.hpp
     src/qz/gfx/static_mesh.cpp
     src/qz/gfx/static_mesh.hpp
+    src/qz/gfx/static_model.cpp
+    src/qz/gfx/static_model.hpp
     src/qz/gfx/static_texture.cpp
     src/qz/gfx/static_texture.hpp
     src/qz/gfx/stb_image.cpp
+    src/qz/gfx/task_manager.cpp
+    src/qz/gfx/task_manager.hpp
     src/qz/gfx/swapchain.cpp
     src/qz/gfx/swapchain.hpp
     src/qz/gfx/vma.cpp
@@ -70,7 +88,7 @@ add_executable(quartz
     src/qz/util/hash.hpp
     src/qz/util/macros.hpp
 
-    src/main.cpp src/qz/gfx/task_manager.cpp src/qz/gfx/task_manager.hpp)
+    src/main.cpp)
 
 target_compile_definitions(quartz PUBLIC
 
@@ -88,8 +106,6 @@ target_compile_definitions(quartz PUBLIC
     GLM_FORCE_DEPTH_ZERO_TO_ONE
     GLM_FORCE_RADIANS)
 
-target_compile_options(quartz PUBLIC $<$<BOOL:${MSVC}>:/EHsc>)
-
 target_include_directories(quartz PUBLIC
     src
     ext/glm
@@ -99,5 +115,6 @@ target_include_directories(quartz PUBLIC
 target_link_libraries(quartz PUBLIC
     ftl
     glfw
+    assimp
     Vulkan::Vulkan
     spirv-cross-glsl)

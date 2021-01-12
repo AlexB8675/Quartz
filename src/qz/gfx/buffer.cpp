@@ -1,5 +1,7 @@
 #include <qz/gfx/buffer.hpp>
 
+#include <cstring>
+
 namespace qz::gfx {
     qz_nodiscard Buffer<1> Buffer<1>::from_raw(StaticBuffer&& handle) noexcept {
         Buffer buffer{};

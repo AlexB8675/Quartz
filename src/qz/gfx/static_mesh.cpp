@@ -11,7 +11,8 @@
 #include <cstring>
 
 namespace qz::gfx {
-    struct TaskData {
+    template <>
+    struct TaskData<StaticMesh> {
         const Context* context;
         meta::Handle<StaticMesh> handle;
         std::vector<float> vertices;
@@ -20,16 +21,10 @@ namespace qz::gfx {
 
     qz_nodiscard meta::Handle<StaticMesh> StaticMesh::request(const Context& context, StaticMesh::CreateInfo&& info) noexcept {
         const auto result = assets::emplace_empty<StaticMesh>();
-        const auto task_data = new TaskData{
-            &context,
-            result,
-            std::move(info.geometry),
-            std::move(info.indices),
-        };
 
-        context.task_manager->handle().AddTask(ftl::Task{
+        context.task_manager->add_task(ftl::Task{
             .Function = +[](ftl::TaskScheduler* scheduler, void* ptr) {
-                const auto* task_data = static_cast<const TaskData*>(ptr);
+                const auto* task_data = static_cast<const TaskData<StaticMesh>*>(ptr);
                 const auto thread_index = scheduler->GetCurrentThreadIndex();
                 const auto& context = *task_data->context;
                 auto transfer_cmd = CommandBuffer::allocate(context, context.transfer_pools[thread_index]);
@@ -128,8 +123,13 @@ namespace qz::gfx {
                     }
                 });
             },
-            .ArgData = task_data
-        }, ftl::TaskPriority::High);
+            .ArgData = new TaskData<StaticMesh>{
+                &context,
+                result,
+                std::move(info.geometry),
+                std::move(info.indices),
+            }
+        });
         return result;
     }
 

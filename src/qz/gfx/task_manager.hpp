@@ -23,6 +23,7 @@ namespace qz::gfx {
         std::mutex _mutex;
     public:
         qz_nodiscard ftl::TaskScheduler& handle() noexcept;
+        void add_task(ftl::Task&&) noexcept;
         void insert(TaskStub&&) noexcept;
         void tick() noexcept;
     };

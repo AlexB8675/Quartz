@@ -5,6 +5,10 @@ namespace qz::gfx {
         return _handle;
     }
 
+    void TaskManager::add_task(ftl::Task&& task) noexcept {
+        _handle.AddTask(task, ftl::TaskPriority::High);
+    }
+
     void TaskManager::insert(TaskStub&& stub) noexcept {
         std::lock_guard<std::mutex> lock(_mutex);
         _tasks.emplace_back(stub);
@@ -16,12 +20,10 @@ namespace qz::gfx {
             return;
         }
 
-        for (auto it = _tasks.begin(); it != _tasks.end(); ++it) {
-            if (it->poll() == VK_SUCCESS) {
-                it->cleanup();
-                if ((it = _tasks.erase(it)) == _tasks.end()) {
-                    break;
-                }
+        for (std::size_t i = 0; i < _tasks.size(); ++i) {
+            if (_tasks[i].poll() == VK_SUCCESS) {
+                _tasks[i].cleanup();
+                _tasks.erase(_tasks.begin() + i++);
             }
         }
     }

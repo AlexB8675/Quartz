@@ -11,28 +11,32 @@
 #include <stb_image.h>
 
 #include <optional>
+#include <cstring>
+#include <thread>
 
 namespace qz::gfx {
-    struct TaskData {
+    template <>
+    struct TaskData<StaticTexture> {
+        VkFormat format;
+        std::string path;
         const Context* context;
-        const std::string_view path;
         meta::Handle<StaticTexture> result;
     };
 
     static void load_texture(ftl::TaskScheduler* scheduler, void* ptr) {
-        const auto* task_data = static_cast<const TaskData*>(ptr);
+        const auto* task_data = static_cast<const TaskData<StaticTexture>*>(ptr);
         const auto thread_index = scheduler->GetCurrentThreadIndex();
         const auto& context = *task_data->context;
         auto file = util::FileView::create(task_data->path);
 
         std::int32_t width, height, channels = 4;
-        const auto* image_data = stbi_load_from_memory(file.data(), file.size(), &width, &height, &channels, STBI_rgb_alpha);
+        const auto* image_data = stbi_load_from_memory((const std::uint8_t*)file.data(), file.size(), &width, &height, &channels, STBI_rgb_alpha);
 
         auto image = Image::create(context, {
             .width = (std::uint32_t)width,
             .height = (std::uint32_t)height,
             .mips = 1,
-            .format = VK_FORMAT_R8G8B8A8_SRGB,
+            .format = task_data->format,
             .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         });
 
@@ -114,8 +118,8 @@ namespace qz::gfx {
         return texture;
     }
 
-    qz_nodiscard meta::Handle<StaticTexture> StaticTexture::allocate(const Context& context, std::string_view path) noexcept {
-        const auto result = request(context, path);
+    qz_nodiscard meta::Handle<StaticTexture> StaticTexture::allocate(const Context& context, std::string_view path, VkFormat format) noexcept {
+        const auto result = request(context, path, format);
         while (!assets::is_ready(result)) {
             using namespace std::literals;
             std::this_thread::sleep_for(1ms);
@@ -124,18 +128,17 @@ namespace qz::gfx {
         return result;
     }
 
-    meta::Handle<StaticTexture> StaticTexture::request(const Context& context, std::string_view path) noexcept {
+    meta::Handle<StaticTexture> StaticTexture::request(const Context& context, std::string_view path, VkFormat format) noexcept {
         const auto result = assets::emplace_empty<StaticTexture>();
-        const auto task_data = new TaskData{
-            &context,
-            path,
-            result,
-        };
-
-        context.task_manager->handle().AddTask({
+        context.task_manager->add_task({
             .Function = load_texture,
-            .ArgData = task_data
-        }, ftl::TaskPriority::High);
+            .ArgData = new TaskData<StaticTexture>{
+                format,
+                path.data(),
+                &context,
+                result,
+            }
+        });
         return result;
     }
 

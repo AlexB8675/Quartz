@@ -1,6 +1,7 @@
 #pragma once
 
 #include <qz/gfx/pipeline.hpp>
+
 #include <qz/util/macros.hpp>
 
 #include <type_traits>

@@ -21,9 +21,11 @@ namespace qz::gfx {
     class Buffer;
     class TaskManager;
     class StaticTexture;
+    template <typename>
+    struct TaskData;
 } // namespace qz::gfx
 
 namespace qz::meta {
     template <typename>
     struct Handle;
-}
+} // namespace qz::meta

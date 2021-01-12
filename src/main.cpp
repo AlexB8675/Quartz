@@ -1,5 +1,6 @@
 #include <qz/gfx/descriptor_set.hpp>
 #include <qz/gfx/static_texture.hpp>
+#include <qz/gfx/static_model.hpp>
 #include <qz/gfx/render_pass.hpp>
 #include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/pipeline.hpp>
@@ -21,14 +22,15 @@ using namespace qz;
 struct Camera {
     struct Raw {
         glm::mat4 projection;
+        glm::mat4 model;
         glm::mat4 view;
     };
-    glm::vec3 position = {0.0f, 0.0f, 2.0f };
+    glm::vec3 position = {0.8f, 0.2f, 0.0f };
     glm::vec3 front = { 0.0f, 0.0f, -1.0f };
     glm::vec3 up = { 0.0f, 1.0f, 0.0f };
     glm::vec3 right = { 0.0f, 0.0f, 0.0f };
     glm::vec3 world_up = { 0.0f, 1.0f, 0.0f };
-    float yaw = -90.0f;
+    float yaw = -180.0f;
     float pitch = 0.0f;
 
     void update(const gfx::Window& window, double delta_time) noexcept {
@@ -67,17 +69,17 @@ private:
             position += right * delta_movement;
         }
         if (window.get_key_state(gfx::Keys::space) == gfx::KeyState::pressed) {
-            position -= world_up * delta_movement;
+            position += world_up * delta_movement;
         }
         if (window.get_key_state(gfx::Keys::left_shift) == gfx::KeyState::pressed) {
-            position += world_up * delta_movement;
+            position -= world_up * delta_movement;
         }
     }
 
     void _process_mouse(const gfx::Window& window) noexcept {
         const auto [xoff, yoff] = window.get_mouse_offset();
         yaw += (float)xoff;
-        pitch -= (float)yoff;
+        pitch += (float)yoff;
 
         if (pitch > 89.9f) {
             pitch = 89.9f;
@@ -145,7 +147,9 @@ int main() {
         .attributes = {
             gfx::VertexAttribute::vec3,
             gfx::VertexAttribute::vec3,
-            gfx::VertexAttribute::vec2
+            gfx::VertexAttribute::vec2,
+            gfx::VertexAttribute::vec3,
+            gfx::VertexAttribute::vec3
         },
         .states = {
             VK_DYNAMIC_STATE_VIEWPORT,
@@ -156,37 +160,15 @@ int main() {
         .depth = true
     });
 
-    const auto triangle = gfx::StaticMesh::request(context, {
-        .geometry = {
-            -1.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f,  1.0f,
-             0.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  1.0f,  1.0f,
-            -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f, -1.0f
-        },
-        .indices = {
-            0, 1, 2
-        }
-    });
-
-    const auto quad = gfx::StaticMesh::request(context, {
-        .geometry = {
-            0.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f,  1.0f,
-            0.0f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, -1.0f, -1.0f,
-            1.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  1.0f,  1.0f,
-            1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f, -1.0f
-        },
-        .indices = {
-            0, 1, 2,
-            1, 2, 3
-        }
-    });
-
-    (void)gfx::StaticTexture::request(context, "../data/textures/container.jpg");
+    auto scene = gfx::StaticModel::request(context, "../data/models/sponza/sponza.glb");
     auto set = gfx::DescriptorSet<>::allocate(context, pipeline.set(0));
     auto buffer = gfx::Buffer<>::allocate(context, sizeof(Camera::Raw), meta::uniform_buffer);
 
     Camera camera;
     Camera::Raw camera_data = {
-        glm::perspective(glm::radians(60.0f), window.width() / (float)window.height(), 0.1f, 100.0f)
+        glm::perspective(glm::radians(60.0f), window.width() / (float)window.height(), 0.1f, 100.0f),
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.001f)),
+        camera.view()
     };
 
     std::size_t frame_count = 0;
@@ -204,19 +186,22 @@ int main() {
         gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["Camera"], buffer[frame.index]);
         gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["textures"], assets::all_textures(context));
 
-        std::uint32_t index = 1;
         command_buffer
             .begin()
                 .begin_render_pass(render_pass, 0)
-                    .set_viewport(meta::full_viewport)
-                    .set_scissor(meta::full_scissor)
-                    .bind_pipeline(pipeline)
-                    .bind_descriptor_set(set[frame.index])
-                    .push_constants(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(std::uint32_t), &index)
-                    .bind_static_mesh(triangle)
-                    .draw_indexed(3, 1, 0, 0)
-                    .bind_static_mesh(quad)
-                    .draw_indexed(6, 1, 0, 0)
+                .set_viewport(meta::full_viewport)
+                .set_scissor(meta::full_scissor)
+                .bind_pipeline(pipeline)
+                .bind_descriptor_set(set[frame.index]);
+
+        for (const auto& [mesh, diffuse, normal, specular, vertex, index] : scene.submeshes) {
+            command_buffer
+                .bind_static_mesh(mesh)
+                .push_constants(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(std::uint32_t), &diffuse.index)
+                .draw_indexed(index, 1, 0, 0);
+        }
+
+        command_buffer
                 .end_render_pass()
                 .insert_layout_transition({
                     .image = frame.image,
