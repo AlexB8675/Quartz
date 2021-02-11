@@ -22,7 +22,6 @@ namespace qz::gfx {
     struct StaticModel {
         std::vector<TexturedMesh> submeshes;
 
-        qz_nodiscard static StaticModel request(const Context&, std::string_view) noexcept;
-        static void destroy(const Context&, StaticModel&);
+        qz_nodiscard static meta::Handle<StaticModel> request(const Context&, std::string_view) noexcept;
     };
 } // namespace qz::gfx

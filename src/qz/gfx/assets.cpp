@@ -1,4 +1,5 @@
 #include <qz/gfx/static_texture.hpp>
+#include <qz/gfx/static_model.hpp>
 #include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/context.hpp>
 #include <qz/gfx/assets.hpp>
@@ -25,6 +26,11 @@ namespace qz::assets {
     }
 
     template <typename T>
+    qz_nodiscard std::unique_lock<std::mutex> acquire() noexcept {
+        return std::unique_lock(mutex<T>);
+    }
+
+    template <typename T>
     qz_nodiscard T& from_handle(meta::Handle<T> handle) noexcept {
         return assets<T>[handle.index].first;
     }
@@ -37,9 +43,7 @@ namespace qz::assets {
     template <typename T>
     void finalize(meta::Handle<T> handle, T&& data) noexcept {
         std::lock_guard<std::mutex> lock(mutex<T>);
-        assets<T>[handle.index] = {
-            data, true
-        };
+        assets<T>[handle.index] = { std::forward<T>(data), true };
     }
 
     void free_all_resources(const gfx::Context& context) noexcept {
@@ -63,13 +67,13 @@ namespace qz::assets {
         std::vector<VkDescriptorImageInfo> descriptors{};
         descriptors.reserve(assets<gfx::StaticTexture>.size());
         for (const auto& [texture, ready] : assets<gfx::StaticTexture>) {
-            if (ready) [[likely]] {
+            if (ready) qz_likely {
                 descriptors.push_back({
                     .sampler = context.default_sampler,
                     .imageView = texture.view(),
                     .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                 });
-            } else [[unlikely]] {
+            } else qz_unlikely {
                 descriptors.push_back({
                     .sampler = context.default_sampler,
                     .imageView = default_texture().view(),
@@ -80,31 +84,23 @@ namespace qz::assets {
         return descriptors;
     }
 
-    template <typename T>
-    void lock() noexcept {
-        mutex<T>.lock();
-    }
-
-    template <typename T>
-    void unlock() noexcept {
-        mutex<T>.unlock();
-    }
-    
     template meta::Handle<gfx::StaticMesh>    emplace_empty() noexcept;
     template meta::Handle<gfx::StaticTexture> emplace_empty() noexcept;
+    template meta::Handle<gfx::StaticModel>   emplace_empty() noexcept;
+
+    template std::unique_lock<std::mutex> acquire<gfx::StaticMesh>()    noexcept;
+    template std::unique_lock<std::mutex> acquire<gfx::StaticTexture>() noexcept;
+    template std::unique_lock<std::mutex> acquire<gfx::StaticModel>()   noexcept;
 
     template gfx::StaticMesh&    from_handle(meta::Handle<gfx::StaticMesh>)    noexcept;
     template gfx::StaticTexture& from_handle(meta::Handle<gfx::StaticTexture>) noexcept;
+    template gfx::StaticModel&   from_handle(meta::Handle<gfx::StaticModel>)   noexcept;
 
     template bool is_ready(meta::Handle<gfx::StaticMesh>)    noexcept;
     template bool is_ready(meta::Handle<gfx::StaticTexture>) noexcept;
+    template bool is_ready(meta::Handle<gfx::StaticModel>)   noexcept;
 
     template void finalize(meta::Handle<gfx::StaticMesh>, gfx::StaticMesh&&)       noexcept;
     template void finalize(meta::Handle<gfx::StaticTexture>, gfx::StaticTexture&&) noexcept;
-
-    template void lock<gfx::StaticMesh>()    noexcept;
-    template void lock<gfx::StaticTexture>() noexcept;
-
-    template void unlock<gfx::StaticMesh>()    noexcept;
-    template void unlock<gfx::StaticTexture>() noexcept;
+    template void finalize(meta::Handle<gfx::StaticModel>, gfx::StaticModel&&)     noexcept;
 } // namespace qz::assets

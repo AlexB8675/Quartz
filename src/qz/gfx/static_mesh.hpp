@@ -16,6 +16,8 @@ namespace qz::gfx {
         };
         StaticBuffer geometry;
         StaticBuffer indices;
+        std::uint64_t vert_count;
+        std::uint64_t indices_count;
 
         qz_nodiscard static meta::Handle<StaticMesh> request(const Context&, StaticMesh::CreateInfo&&) noexcept;
         static void destroy(const Context&, StaticMesh&) noexcept;

@@ -34,15 +34,10 @@ namespace qz::gfx {
         VkCommandPool _pool;
         bool _ready;
     public:
-        CommandBuffer() noexcept = default;
-
+        qz_nodiscard CommandBuffer() noexcept = default;
         qz_nodiscard static CommandBuffer from_raw(VkCommandPool, VkCommandBuffer) noexcept;
         qz_nodiscard static CommandBuffer allocate(const Context&, VkCommandPool) noexcept;
         static void destroy(const Context&, CommandBuffer&) noexcept;
-
-        qz_nodiscard VkCommandBuffer handle() const noexcept;
-        qz_nodiscard VkCommandBuffer* ptr_handle() noexcept;
-        qz_nodiscard const VkCommandBuffer* ptr_handle() const noexcept;
 
         CommandBuffer& begin() noexcept;
         CommandBuffer& begin_render_pass(const RenderPass&, std::size_t) noexcept;
@@ -66,5 +61,8 @@ namespace qz::gfx {
         CommandBuffer& transfer_ownership(const ImageMemoryBarrier&, const Queue&, const Queue&) noexcept;
         CommandBuffer& insert_layout_transition(const ImageMemoryBarrier&) noexcept;
         void end() noexcept;
+
+        qz_nodiscard VkCommandBuffer handle() const noexcept;
+        qz_nodiscard const VkCommandBuffer* ptr_handle() const noexcept;
     };
 } // namespace qz::gfx

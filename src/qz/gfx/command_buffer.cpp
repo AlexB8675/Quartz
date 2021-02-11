@@ -9,41 +9,30 @@
 #include <qz/gfx/queue.hpp>
 
 namespace qz::gfx {
-    qz_nodiscard CommandBuffer CommandBuffer::from_raw(VkCommandPool command_pool, VkCommandBuffer handle) noexcept {
-        CommandBuffer command_buffer{};
-        command_buffer._handle = handle;
-        command_buffer._pool = command_pool;
-        return command_buffer;
+    qz_nodiscard CommandBuffer CommandBuffer::from_raw(VkCommandPool pool, VkCommandBuffer handle) noexcept {
+        CommandBuffer result{};
+        result._handle = handle;
+        result._pool = pool;
+        return result;
     }
 
-    qz_nodiscard CommandBuffer CommandBuffer::allocate(const Context& context,  VkCommandPool command_pool) noexcept {
-        VkCommandBuffer command_buffer{};
+    qz_nodiscard CommandBuffer CommandBuffer::allocate(const Context& context, VkCommandPool pool) noexcept {
+        VkCommandBuffer handle;
         VkCommandBufferAllocateInfo allocate_info{};
         allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocate_info.commandPool = command_pool;
+        allocate_info.commandPool = pool;
         allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocate_info.commandBufferCount = 1;
-        qz_vulkan_check(vkAllocateCommandBuffers(context.device, &allocate_info, &command_buffer));
+        qz_vulkan_check(vkAllocateCommandBuffers(context.device, &allocate_info, &handle));
 
-        return from_raw(command_pool, command_buffer);
+        return from_raw(pool, handle);
     }
 
-    void CommandBuffer::destroy(const Context& context, CommandBuffer& command_buffer) noexcept {
-        vkFreeCommandBuffers(context.device, command_buffer._pool, 1, &command_buffer._handle);
-        command_buffer = {};
+    void CommandBuffer::destroy(const Context& context, CommandBuffer& handle) noexcept {
+        vkFreeCommandBuffers(context.device, handle._pool, 1, &handle._handle);
+        handle = {};
     }
 
-    qz_nodiscard VkCommandBuffer CommandBuffer::handle() const noexcept {
-        return _handle;
-    }
-
-    qz_nodiscard VkCommandBuffer* CommandBuffer::ptr_handle() noexcept {
-        return &_handle;
-    }
-
-    qz_nodiscard const VkCommandBuffer* CommandBuffer::ptr_handle() const noexcept {
-        return &_handle;
-    }
 
     CommandBuffer& CommandBuffer::begin() noexcept {
         VkCommandBufferBeginInfo begin_info{};
@@ -121,14 +110,13 @@ namespace qz::gfx {
 
     CommandBuffer& CommandBuffer::bind_static_mesh(meta::Handle<StaticMesh> handle) noexcept {
         _ready = false;
-        assets::lock<StaticMesh>();
-        if (assets::is_ready(handle)) [[likely]] {
-            const auto& mesh = assets::from_handle(handle);
+        const auto lock = assets::acquire<StaticMesh>();
+        if (assets::is_ready(handle)) qz_likely {
+            const auto mesh = assets::from_handle(handle);
             bind_vertex_buffer(mesh.geometry);
             bind_index_buffer(mesh.indices);
             _ready = true;
         }
-        assets::unlock<StaticMesh>();
         return *this;
     }
 
@@ -291,5 +279,13 @@ namespace qz::gfx {
 
     void CommandBuffer::end() noexcept {
         qz_vulkan_check(vkEndCommandBuffer(_handle));
+    }
+
+    qz_nodiscard VkCommandBuffer CommandBuffer::handle() const noexcept {
+        return _handle;
+    }
+
+    qz_nodiscard const VkCommandBuffer* CommandBuffer::ptr_handle() const noexcept {
+        return &_handle;
     }
 } // namespace qz::gfx

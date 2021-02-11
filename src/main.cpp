@@ -25,7 +25,7 @@ struct Camera {
         glm::mat4 model;
         glm::mat4 view;
     };
-    glm::vec3 position = {0.8f, 0.2f, 0.0f };
+    glm::vec3 position = {1.2f, 0.4f, 0.0f };
     glm::vec3 front = { 0.0f, 0.0f, -1.0f };
     glm::vec3 up = { 0.0f, 1.0f, 0.0f };
     glm::vec3 right = { 0.0f, 0.0f, 0.0f };
@@ -167,7 +167,7 @@ int main() {
     Camera camera;
     Camera::Raw camera_data = {
         glm::perspective(glm::radians(60.0f), window.width() / (float)window.height(), 0.1f, 100.0f),
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.001f)),
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.005f)),
         camera.view()
     };
 
@@ -194,11 +194,13 @@ int main() {
                 .bind_pipeline(pipeline)
                 .bind_descriptor_set(set[frame.index]);
 
-        for (const auto& [mesh, diffuse, normal, specular, vertex, index] : scene.submeshes) {
-            command_buffer
-                .bind_static_mesh(mesh)
-                .push_constants(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(std::uint32_t), &diffuse.index)
-                .draw_indexed(index, 1, 0, 0);
+        if (const auto lock = assets::acquire<gfx::StaticModel>(); assets::is_ready(scene)) qz_likely {
+            for (const auto& [mesh, diffuse, normal, specular, vertex, index] : assets::from_handle(scene).submeshes) {
+                command_buffer
+                    .bind_static_mesh(mesh)
+                    .push_constants(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(std::uint32_t), &diffuse.index)
+                    .draw_indexed(index, 1, 0, 0);
+            }
         }
 
         command_buffer

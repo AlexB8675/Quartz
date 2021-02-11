@@ -1,11 +1,18 @@
 #include <qz/gfx/task_manager.hpp>
 
 namespace qz::gfx {
+    qz_nodiscard TaskManager::TaskManager() noexcept {
+        _handle.Init({
+            .Behavior = ftl::EmptyQueueBehavior::Sleep
+        });
+    }
+
     ftl::TaskScheduler& TaskManager::handle() noexcept {
         return _handle;
     }
 
     void TaskManager::add_task(ftl::Task&& task) noexcept {
+        std::lock_guard<std::mutex> lock(_mutex);
         _handle.AddTask(task, ftl::TaskPriority::High);
     }
 

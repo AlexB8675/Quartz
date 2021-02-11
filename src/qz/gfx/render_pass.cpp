@@ -65,15 +65,12 @@ namespace qz::gfx {
 
         std::vector<SubpassStorage> subpass_storage;
         std::vector<VkSubpassDescription> subpasses;
-
         subpass_storage.reserve(info.subpasses.size());
         subpasses.reserve(info.subpasses.size());
         for (const auto& each : info.subpasses) {
             auto& storage = subpass_storage.emplace_back();
-
             for (const auto& name : each.attachments) {
                 auto attachment = render_pass.attachment(name);
-
                 if (attachment.image.aspect & (VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT)) {
                     storage.depth_attachment = attachment.reference;
                 } else {
@@ -159,17 +156,13 @@ namespace qz::gfx {
                 Image::destroy(context, each.image);
             }
         }
-        render_pass._attachments = {};
-
-        for (const auto& framebuffer : render_pass._framebuffers) {
+        for (auto framebuffer : render_pass._framebuffers) {
             vkDestroyFramebuffer(context.device, framebuffer, nullptr);
         }
-        render_pass._framebuffers = {};
-
         if (render_pass._handle) {
             vkDestroyRenderPass(context.device,render_pass. _handle, nullptr);
         }
-        render_pass._handle = nullptr;
+        render_pass = {};
     }
 
     qz_nodiscard const Image& RenderPass::image(std::string_view name) const noexcept {

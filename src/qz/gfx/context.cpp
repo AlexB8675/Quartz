@@ -288,36 +288,29 @@ namespace qz::gfx {
         qz_vulkan_check(vmaCreateAllocator(&allocator_create_info, &context.allocator));
 
         // Initialize FTL scheduler
-        (context.task_manager = std::make_unique<TaskManager>())->handle().Init({
-            .Behavior = ftl::EmptyQueueBehavior::Sleep
-        });
+        context.task_manager = std::make_unique<TaskManager>();
 
         // Create main command pool, used for allocating rendering command buffers.
-        VkCommandPoolCreateInfo command_pool_create_info{};
-        command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        command_pool_create_info.queueFamilyIndex = context.graphics->family();
-        qz_vulkan_check(vkCreateCommandPool(context.device, &command_pool_create_info, nullptr, &context.main_pool));
+        VkCommandPoolCreateInfo pool_create_info{};
+        pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        pool_create_info.queueFamilyIndex = context.graphics->family();
+        vkCreateCommandPool(context.device, &pool_create_info, nullptr, &context.main_pool);
 
-        const auto thread_count = context.task_manager->handle().GetThreadCount();
         // Create dedicated transfer pools for each thread.
-        VkCommandPoolCreateInfo transfer_pool_create_info{};
-        transfer_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        transfer_pool_create_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-        transfer_pool_create_info.queueFamilyIndex = context.transfer->family();
+        const auto thread_count = std::thread::hardware_concurrency();
         context.transfer_pools.reserve(thread_count);
+        pool_create_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        pool_create_info.queueFamilyIndex = context.transfer->family();
         for (std::size_t i = 0; i < thread_count; ++i) {
-            qz_vulkan_check(vkCreateCommandPool(context.device, &transfer_pool_create_info, nullptr, &context.transfer_pools.emplace_back()));
+            vkCreateCommandPool(context.device, &pool_create_info, nullptr, &context.transfer_pools.emplace_back());
         }
 
-        // Create dedicated graphics transfer pools for each thread.
-        VkCommandPoolCreateInfo transient_pool_create_info{};
-        transfer_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        transfer_pool_create_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-        transfer_pool_create_info.queueFamilyIndex = context.graphics->family();
-        context.transfer_pools.reserve(thread_count);
+        // Create dedicated graphics pools for each thread.
+        pool_create_info.queueFamilyIndex = context.graphics->family();
+        context.transient_pools.reserve(thread_count);
         for (std::size_t i = 0; i < thread_count; ++i) {
-            qz_vulkan_check(vkCreateCommandPool(context.device, &transfer_pool_create_info, nullptr, &context.transient_pools.emplace_back()));
+            vkCreateCommandPool(context.device, &pool_create_info, nullptr, &context.transient_pools.emplace_back());
         }
 
         // Create main descriptor set pool, used for allocating all our descriptor sets.
@@ -362,10 +355,10 @@ namespace qz::gfx {
     void Context::destroy(Context& context) noexcept {
         vkDestroySampler(context.device, context.default_sampler, nullptr);
         vkDestroyCommandPool(context.device, context.main_pool, nullptr);
-        for (const auto pool : context.transient_pools) {
+        for (auto pool : context.transient_pools) {
             vkDestroyCommandPool(context.device, pool, nullptr);
         }
-        for (const auto pool : context.transfer_pools) {
+        for (auto pool : context.transfer_pools) {
             vkDestroyCommandPool(context.device, pool, nullptr);
         }
         vkDestroyDescriptorPool(context.device, context.descriptor_pool, nullptr);

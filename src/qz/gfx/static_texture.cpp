@@ -100,13 +100,13 @@ namespace qz::gfx {
                 return vkGetFenceStatus(context.device, request_done);
             },
             .cleanup = [=, &context]() mutable {
-                assets::finalize(task_data->result, StaticTexture::from_raw(image));
                 vkDestroySemaphore(context.device, transfer_done, nullptr);
                 vkDestroyFence(context.device, request_done, nullptr);
                 StaticBuffer::destroy(context, staging);
                 CommandBuffer::destroy(context, ownership_cmd);
                 CommandBuffer::destroy(context, transfer_cmd);
                 util::FileView::destroy(file);
+                assets::finalize(task_data->result, StaticTexture::from_raw(image));
                 delete task_data;
             }
         });
@@ -120,7 +120,10 @@ namespace qz::gfx {
 
     qz_nodiscard meta::Handle<StaticTexture> StaticTexture::allocate(const Context& context, std::string_view path, VkFormat format) noexcept {
         const auto result = request(context, path, format);
-        while (!assets::is_ready(result)) {
+        while (true) {
+            if (const auto lock = assets::acquire<StaticTexture>(); assets::is_ready(result)) {
+                break;
+            }
             using namespace std::literals;
             std::this_thread::sleep_for(1ms);
             poll_transfers(context);

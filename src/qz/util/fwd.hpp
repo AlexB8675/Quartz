@@ -19,10 +19,10 @@ namespace qz::gfx {
     class DescriptorSet;
     template <size_t>
     class Buffer;
-    class TaskManager;
     class StaticTexture;
     template <typename>
     struct TaskData;
+    struct StaticModel;
 } // namespace qz::gfx
 
 namespace qz::meta {

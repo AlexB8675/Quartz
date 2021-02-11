@@ -14,17 +14,8 @@ namespace qz::gfx {
         renderer.swapchain = Swapchain::create(context, window);
 
         // Allocate rendering command buffers.
-        VkCommandBufferAllocateInfo command_buffer_allocate_info{};
-        command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        command_buffer_allocate_info.commandPool = context.main_pool;
-        command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        command_buffer_allocate_info.commandBufferCount = meta::in_flight;
-
-        meta::in_flight_array<VkCommandBuffer> command_buffers{};
-        qz_vulkan_check(vkAllocateCommandBuffers(context.device, &command_buffer_allocate_info, &command_buffers[0]));
-
-        for (std::uint32_t index = 0; const auto& each : command_buffers) {
-            renderer.gfx_cmds[index++] = CommandBuffer::from_raw(context.main_pool, each);
+        for (std::size_t i = 0; i < meta::in_flight; ++i) {
+            renderer.gfx_cmds[i] = CommandBuffer::allocate(context, context.main_pool);
         }
 
         // Fence info.

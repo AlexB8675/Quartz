@@ -70,10 +70,10 @@ namespace qz::gfx {
         auto& bound = set._bound[binding];
         auto* current = std::get_if<0>(&bound);
 
-        if (!current) [[unlikely]] {
+        if (!current) qz_unlikely {
             current = &bound.emplace<0>();
         }
-        if (*current != descriptor) [[unlikely]] {
+        if (*current != descriptor) qz_unlikely {
             VkWriteDescriptorSet update{};
             update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             update.pNext = nullptr;
@@ -89,24 +89,28 @@ namespace qz::gfx {
         }
     }
 
-    void DescriptorSet<1>::bind(const Context& context, DescriptorSet<1>& set, const DescriptorBinding& binding, meta::Handle<StaticTexture> texture) noexcept {
-        assets::lock<StaticTexture>();
+    void DescriptorSet<1>::bind(const Context& context, DescriptorSet<1>& set, const DescriptorBinding& binding, meta::Handle<StaticTexture> handle) noexcept {
         auto descriptor = VkDescriptorImageInfo{
             .sampler = context.default_sampler,
-            .imageView = assets::default_texture().view(),
+            .imageView = nullptr,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
-        if (assets::is_ready(texture)) [[likely]] {
-            descriptor.imageView = assets::from_handle(texture).view();
+
+        {
+            const auto lock = assets::acquire<gfx::StaticTexture>();
+            if (assets::is_ready(handle)) qz_likely {
+                descriptor.imageView = assets::from_handle(handle).view();
+            } else qz_unlikely {
+                descriptor.imageView = assets::default_texture().view();
+            }
         }
-        assets::unlock<StaticTexture>();
         auto& bound = set._bound[binding];
         auto* current = std::get_if<1>(&bound);
 
-        if (!current) [[unlikely]] {
+        if (!current) qz_unlikely {
             current = &bound.emplace<1>();
         }
-        if (*current != descriptor) [[unlikely]] {
+        if (*current != descriptor) qz_unlikely {
             VkWriteDescriptorSet update{};
             update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             update.pNext = nullptr;
@@ -126,10 +130,10 @@ namespace qz::gfx {
         auto& bound = set._bound[binding];
         auto* current = std::get_if<2>(&bound);
 
-        if (!current) [[unlikely]] {
+        if (!current) qz_unlikely {
             current = &bound.emplace<2>();
         }
-        if (*current != qz::util::hash(0, textures)) [[unlikely]] {
+        if (*current != qz::util::hash(0, textures)) qz_unlikely {
             VkWriteDescriptorSet update{};
             update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             update.pNext = nullptr;

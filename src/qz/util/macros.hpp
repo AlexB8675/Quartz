@@ -43,20 +43,19 @@ qz_nodiscard bool operator ==(const type& rhs) const noexcept {                 
     }(qz_for_each(qz_compare, __VA_ARGS__));                                        \
 }
 
-
 #if _MSVC_LANG >= 201703L || __cplusplus >= 201703L
     #define qz_nodiscard [[nodiscard]]
     #define qz_noreturn [[noreturn]]
+    #define qz_unlikely [[unlikely]]
+    #define qz_likely [[likely]]
 #else
     #define qz_nodiscard
     #define qz_noreturn
+    #define qz_unlikely
+    #define qz_likely
 #endif
 
-#if defined(_WIN32)
-    #define qz_unreachable() __assume(false)
-#else
-    #define qz_unreachable() __builtin_unreachable()
-#endif
+qz_noreturn inline void qz_unreachable() {}
 
 #define qz_force_assert(msg) qz_assert(false, msg), qz_unreachable()
 #if defined(quartz_debug)

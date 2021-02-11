@@ -14,7 +14,7 @@ namespace qz::gfx {
     template <>
     struct TaskData<StaticMesh> {
         const Context* context;
-        meta::Handle<StaticMesh> handle;
+        meta::Handle<StaticMesh> result;
         std::vector<float> vertices;
         std::vector<std::uint32_t> indices;
     };
@@ -27,7 +27,6 @@ namespace qz::gfx {
                 const auto* task_data = static_cast<const TaskData<StaticMesh>*>(ptr);
                 const auto thread_index = scheduler->GetCurrentThreadIndex();
                 const auto& context = *task_data->context;
-                auto transfer_cmd = CommandBuffer::allocate(context, context.transfer_pools[thread_index]);
 
                 auto vertex_staging = StaticBuffer::create(context, {
                     .flags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -54,6 +53,7 @@ namespace qz::gfx {
                     .capacity = index_staging.capacity
                 });
 
+                auto transfer_cmd = CommandBuffer::allocate(context, context.transfer_pools[thread_index]);
                 transfer_cmd
                     .begin()
                         .copy_buffer(vertex_staging, geometry)
@@ -109,16 +109,16 @@ namespace qz::gfx {
                         return vkGetFenceStatus(context.device, request_done);
                     },
                     .cleanup = [=, &context]() mutable {
-                        assets::finalize(task_data->handle, {
-                            geometry,
-                            indices
-                        });
                         vkDestroySemaphore(context.device, transfer_done, nullptr);
                         vkDestroyFence(context.device, request_done, nullptr);
                         StaticBuffer::destroy(context, vertex_staging);
                         StaticBuffer::destroy(context, index_staging);
                         CommandBuffer::destroy(context, ownership_cmd);
                         CommandBuffer::destroy(context, transfer_cmd);
+                        assets::finalize(task_data->result, {
+                            geometry,
+                            indices
+                        });
                         delete task_data;
                     }
                 });
