@@ -165,9 +165,9 @@ namespace qz::gfx {
                 type_string,
                 data->pMessage);
 
-            if (severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+            /*if (severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
                 std::abort();
-            }
+            }*/
 
             return 0;
         };

@@ -118,43 +118,44 @@ namespace qz::gfx {
         }
     }
 
+    static void do_model_load(ftl::TaskScheduler*, void* ptr) noexcept {
+        const auto* task_data = static_cast<const TaskData<StaticModel>*>(ptr);
+        auto& [result, context, path] = *task_data;
+        auto scene_file = util::FileView::create(path);
+        auto importer = new Assimp::Importer();
+        const auto scene = importer->ReadFileFromMemory(scene_file.data(), scene_file.size(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_CalcTangentSpace, path.data());
+        util::FileView::destroy(scene_file);
+        qz_assert(scene && !scene->mFlags && scene->mRootNode, "failed to load model");
+        StaticModel model;
+        process_node(*context, scene, scene->mRootNode, model, path.substr(0, path.find_last_of('/')));
+        assets::finalize(result, std::move(model));
+        context->task_manager->insert({
+            .poll = [result = result]() -> VkResult {
+                const auto model_lock = assets::acquire<StaticModel>();
+                const auto handle     = assets::from_handle(result);
+                if (std::all_of(handle.submeshes.begin(), handle.submeshes.end(), [](const auto& each) {
+                    const auto mesh_lock    = assets::acquire<StaticMesh>();
+                    const auto texture_lock = assets::acquire<StaticTexture>();
+                    return assets::is_ready(each.mesh)    &&
+                           assets::is_ready(each.diffuse) &&
+                           assets::is_ready(each.normal)  &&
+                           assets::is_ready(each.spec);
+                })) {
+                    return VK_SUCCESS;
+                }
+                return VK_NOT_READY;
+            },
+            .cleanup = [task_data, importer]() {
+                delete importer;
+                delete task_data;
+            }
+        });
+    }
+
     qz_nodiscard meta::Handle<StaticModel> StaticModel::request(const Context& context, std::string_view path) noexcept {
         const auto result = assets::emplace_empty<StaticModel>();
         context.task_manager->add_task({
-            .Function = [](ftl::TaskScheduler*, void* ptr) {
-                const auto* task_data = static_cast<const TaskData<StaticModel>*>(ptr);
-                auto& [result, context, path] = *task_data;
-
-                StaticModel model;
-                auto scene_file = util::FileView::create(path);
-                auto importer = new Assimp::Importer();
-                const auto scene = importer->ReadFileFromMemory(scene_file.data(), scene_file.size(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_CalcTangentSpace, path.data());
-                util::FileView::destroy(scene_file);
-                qz_assert(scene && !scene->mFlags && scene->mRootNode, "failed to load model");
-                process_node(*context, scene, scene->mRootNode, model, path.substr(0, path.find_last_of('/')));
-                assets::finalize(result, std::move(model));
-                context->task_manager->insert({
-                    .poll = [result = result]() -> VkResult {
-                        const auto model_lock = assets::acquire<StaticModel>();
-                        const auto handle     = assets::from_handle(result);
-                        if (std::all_of(handle.submeshes.begin(), handle.submeshes.end(), [](const auto& each) {
-                            const auto mesh_lock    = assets::acquire<StaticMesh>();
-                            const auto texture_lock = assets::acquire<StaticTexture>();
-                            return assets::is_ready(each.mesh)    &&
-                                   assets::is_ready(each.diffuse) &&
-                                   assets::is_ready(each.normal)  &&
-                                   assets::is_ready(each.spec);
-                        })) {
-                            return VK_SUCCESS;
-                        }
-                        return VK_NOT_READY;
-                    },
-                    .cleanup = [task_data, importer]() {
-                        delete importer;
-                        delete task_data;
-                    }
-                });
-            },
+            .Function = do_model_load,
             .ArgData = new TaskData<StaticModel>{
                 result,
                 &context,
