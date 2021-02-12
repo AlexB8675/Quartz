@@ -133,7 +133,9 @@ namespace qz::gfx {
         if (!current) qz_unlikely {
             current = &bound.emplace<2>();
         }
-        if (*current != qz::util::hash(0, textures)) qz_unlikely {
+        const auto hash = qz::util::hash(0, textures);
+        if (*current != hash) qz_unlikely {
+            *current = hash;
             VkWriteDescriptorSet update{};
             update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             update.pNext = nullptr;
