@@ -19,12 +19,24 @@ namespace qz::gfx {
 
     struct ImageMemoryBarrier {
         const Image* image;
+        std::uint32_t mip;
+        std::uint32_t levels;
         VkPipelineStageFlags source_stage;
         VkPipelineStageFlags dest_stage;
         VkAccessFlags source_access;
         VkAccessFlags dest_access;
         VkImageLayout old_layout;
         VkImageLayout new_layout;
+    };
+
+    struct ImageBlit {
+        const Image* source_image;
+        const Image* dest_image;
+        VkOffset3D source_off;
+        VkOffset3D dest_off;
+        std::uint32_t source_mip;
+        std::uint32_t dest_mip;
+
     };
 
     class CommandBuffer {
@@ -55,6 +67,7 @@ namespace qz::gfx {
         CommandBuffer& draw_indexed(std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t) noexcept;
         CommandBuffer& end_render_pass() noexcept;
         CommandBuffer& copy_image(const Image&, const Image&) noexcept;
+        CommandBuffer& blit_image(const ImageBlit&) noexcept;
         CommandBuffer& copy_buffer(const StaticBuffer&, const StaticBuffer&) noexcept;
         CommandBuffer& copy_buffer_to_image(const StaticBuffer&, const Image&) noexcept;
         CommandBuffer& transfer_ownership(const BufferMemoryBarrier&, const Queue&, const Queue&) noexcept;

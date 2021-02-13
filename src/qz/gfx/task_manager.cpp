@@ -23,12 +23,12 @@ namespace qz::gfx {
 
     void TaskManager::tick() noexcept {
         std::lock_guard<std::mutex> lock(_mutex);
-        if (_tasks.empty()) {
+        qz_likely_if(_tasks.empty()) {
             return;
         }
 
         for (std::size_t i = 0; i < _tasks.size(); ++i) {
-            if (_tasks[i].poll() == VK_SUCCESS) {
+            qz_unlikely_if(_tasks[i].poll() == VK_SUCCESS) {
                 _tasks[i].cleanup();
                 _tasks.erase(_tasks.begin() + i++);
             }

@@ -19,8 +19,8 @@ namespace qz::util {
 
 namespace std {
     template <typename Ty>
-    struct hash<std::vector<Ty>> {
-        qz_nodiscard size_t operator ()(const std::vector<Ty>& vec) const noexcept {
+    struct hash<vector<Ty>> {
+        qz_nodiscard size_t operator ()(const vector<Ty>& vec) const noexcept {
             size_t result = 0;
             for (const auto& each : vec) {
                 result = qz::util::hash(result, each);

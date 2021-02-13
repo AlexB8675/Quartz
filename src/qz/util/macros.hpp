@@ -55,6 +55,16 @@ qz_nodiscard bool operator ==(const type& rhs) const noexcept {                 
     #define qz_likely
 #endif
 
+#if defined(__llvm__)
+    #define qz_expect(expr, weight) __builtin_expect(expr, weight)
+    #define qz_weighted_if(expr, weight) if (qz_expect(expr, weight))
+    #define qz_likely_if(expr) if (qz_expect(!!(expr), true))
+    #define qz_unlikely_if(expr) if (qz_expect(!!(expr), false))
+#else
+    #define qz_likely_if(expr) if (!!(expr)) qz_likely
+    #define qz_unlikely_if(expr) if (!!(expr)) qz_unlikely
+#endif
+
 qz_noreturn inline void qz_unreachable() {}
 
 #define qz_force_assert(msg) qz_assert(false, msg), qz_unreachable()

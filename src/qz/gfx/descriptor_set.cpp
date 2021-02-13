@@ -25,7 +25,7 @@ namespace qz::gfx {
             return true;
         }
         for (std::size_t i = 0; i < lhs.size(); ++i) {
-            if (lhs[i] != rhs[i]) {
+            qz_unlikely_if(lhs[i] != rhs[i]) {
                 return true;
             }
         }
@@ -70,10 +70,10 @@ namespace qz::gfx {
         auto& bound = set._bound[binding];
         auto* current = std::get_if<0>(&bound);
 
-        if (!current) qz_unlikely {
+        qz_unlikely_if(!current) {
             current = &bound.emplace<0>();
         }
-        if (*current != descriptor) qz_unlikely {
+        qz_unlikely_if(*current != descriptor) {
             VkWriteDescriptorSet update{};
             update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             update.pNext = nullptr;
@@ -98,19 +98,19 @@ namespace qz::gfx {
 
         {
             const auto lock = assets::acquire<gfx::StaticTexture>();
-            if (assets::is_ready(handle)) qz_likely {
+            qz_likely_if(assets::is_ready(handle)) {
                 descriptor.imageView = assets::from_handle(handle).view();
-            } else qz_unlikely {
+            } else {
                 descriptor.imageView = assets::default_texture().view();
             }
         }
         auto& bound = set._bound[binding];
         auto* current = std::get_if<1>(&bound);
 
-        if (!current) qz_unlikely {
+        qz_unlikely_if(!current) {
             current = &bound.emplace<1>();
         }
-        if (*current != descriptor) qz_unlikely {
+        qz_unlikely_if(*current != descriptor) {
             VkWriteDescriptorSet update{};
             update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             update.pNext = nullptr;
@@ -130,11 +130,11 @@ namespace qz::gfx {
         auto& bound = set._bound[binding];
         auto* current = std::get_if<2>(&bound);
 
-        if (!current) qz_unlikely {
+        qz_unlikely_if(!current) {
             current = &bound.emplace<2>();
         }
         const auto hash = qz::util::hash(0, textures);
-        if (*current != hash) qz_unlikely {
+        qz_unlikely_if(*current != hash) {
             *current = hash;
             VkWriteDescriptorSet update{};
             update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

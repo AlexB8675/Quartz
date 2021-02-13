@@ -38,7 +38,7 @@ namespace qz::gfx {
         static std::unordered_map<std::string, meta::Handle<StaticTexture>> cache;
         static std::mutex mutex;
 
-        if (!material->GetTextureCount(type)) {
+        qz_likely_if(!material->GetTextureCount(type)) {
             return { 0 };
         }
         aiString str;
@@ -46,7 +46,7 @@ namespace qz::gfx {
         const auto file_name = std::string(path) + "/" + str.C_Str();
 
         std::lock_guard lock(mutex);
-        if (cache.contains(file_name)) {
+        qz_likely_if(cache.contains(file_name)) {
             return cache[file_name];
         }
         return cache[file_name] =
@@ -64,22 +64,24 @@ namespace qz::gfx {
             vertex.position[1] = mesh->mVertices[i].y;
             vertex.position[2] = mesh->mVertices[i].z;
 
-            vertex.normals[0] = mesh->mNormals[i].x;
-            vertex.normals[1] = mesh->mNormals[i].y;
-            vertex.normals[2] = mesh->mNormals[i].z;
+            qz_likely_if(mesh->mNormals) {
+                vertex.normals[0] = mesh->mNormals[i].x;
+                vertex.normals[1] = mesh->mNormals[i].y;
+                vertex.normals[2] = mesh->mNormals[i].z;
+            }
 
-            if (mesh->mTextureCoords[0]) {
+            qz_likely_if(mesh->mTextureCoords[0]) {
                 vertex.uvs[0] = mesh->mTextureCoords[0][i].x;
                 vertex.uvs[1] = mesh->mTextureCoords[0][i].y;
             }
 
-            if (mesh->mTangents) {
+            qz_likely_if(mesh->mTangents) {
                 vertex.tangents[0] = mesh->mTangents[i].x;
                 vertex.tangents[1] = mesh->mTangents[i].y;
                 vertex.tangents[2] = mesh->mTangents[i].z;
             }
 
-            if (mesh->mBitangents) {
+            qz_likely_if(mesh->mBitangents) {
                 vertex.bitangents[0] = mesh->mBitangents[i].x;
                 vertex.bitangents[1] = mesh->mBitangents[i].y;
                 vertex.bitangents[2] = mesh->mBitangents[i].z;
@@ -133,7 +135,7 @@ namespace qz::gfx {
             .poll = [result = result]() -> VkResult {
                 const auto model_lock = assets::acquire<StaticModel>();
                 const auto handle     = assets::from_handle(result);
-                if (std::all_of(handle.submeshes.begin(), handle.submeshes.end(), [](const auto& each) {
+                qz_unlikely_if(std::all_of(handle.submeshes.begin(), handle.submeshes.end(), [](const auto& each) {
                     const auto mesh_lock    = assets::acquire<StaticMesh>();
                     const auto texture_lock = assets::acquire<StaticTexture>();
                     return assets::is_ready(each.mesh)    &&

@@ -194,12 +194,15 @@ int main() {
                 .bind_pipeline(pipeline)
                 .bind_descriptor_set(set[frame.index]);
 
-        if (const auto lock = assets::acquire<gfx::StaticModel>(); assets::is_ready(scene)) qz_likely {
-            for (const auto& [mesh, diffuse, normal, specular, vertex, index] : assets::from_handle(scene).submeshes) {
-                command_buffer
-                    .bind_static_mesh(mesh)
-                    .push_constants(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(std::uint32_t), &diffuse.index)
-                    .draw_indexed(index, 1, 0, 0);
+        {
+            const auto lock = assets::acquire<gfx::StaticModel>();
+            qz_likely_if(assets::is_ready(scene)) {
+                for (const auto& [mesh, diffuse, normal, specular, vertex, index] : assets::from_handle(scene).submeshes) {
+                    command_buffer
+                        .bind_static_mesh(mesh)
+                        .push_constants(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(std::uint32_t), &diffuse.index)
+                        .draw_indexed(index, 1, 0, 0);
+                }
             }
         }
 
@@ -207,6 +210,8 @@ int main() {
                 .end_render_pass()
                 .insert_layout_transition({
                     .image = frame.image,
+                    .mip = 0,
+                    .levels = 0,
                     .source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                     .dest_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
                     .source_access = {},
@@ -217,6 +222,8 @@ int main() {
                 .copy_image(render_pass.image("color"), *frame.image)
                 .insert_layout_transition({
                     .image = frame.image,
+                    .mip = 0,
+                    .levels = 0,
                     .source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
                     .dest_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                     .source_access = VK_ACCESS_TRANSFER_WRITE_BIT,

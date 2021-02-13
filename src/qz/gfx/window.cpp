@@ -26,7 +26,7 @@ namespace qz::gfx {
 
         glfwSetCursorPosCallback(window, [](GLFWwindow* handle, double x, double y) {
             auto& window = *static_cast<Window* const>(glfwGetWindowUserPointer(handle));
-            if (window._captured) {
+            qz_likely_if(window._captured) {
                 constexpr auto sensitivity = 0.15f;
                 window._moved = true;
                 window._mouse_off = {

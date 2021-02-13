@@ -67,13 +67,13 @@ namespace qz::assets {
         std::vector<VkDescriptorImageInfo> descriptors{};
         descriptors.reserve(assets<gfx::StaticTexture>.size());
         for (const auto& [texture, ready] : assets<gfx::StaticTexture>) {
-            if (ready) qz_likely {
+            qz_likely_if(ready) {
                 descriptors.push_back({
                     .sampler = context.default_sampler,
                     .imageView = texture.view(),
                     .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                 });
-            } else qz_unlikely {
+            } else {
                 descriptors.push_back({
                     .sampler = context.default_sampler,
                     .imageView = default_texture().view(),

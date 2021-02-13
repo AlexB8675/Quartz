@@ -111,7 +111,7 @@ namespace qz::gfx {
     CommandBuffer& CommandBuffer::bind_static_mesh(meta::Handle<StaticMesh> handle) noexcept {
         _ready = false;
         const auto lock = assets::acquire<StaticMesh>();
-        if (assets::is_ready(handle)) qz_likely {
+        qz_likely_if(assets::is_ready(handle)) {
             const auto mesh = assets::from_handle(handle);
             bind_vertex_buffer(mesh.geometry);
             bind_index_buffer(mesh.indices);
@@ -129,7 +129,7 @@ namespace qz::gfx {
                                        std::uint32_t instances,
                                        std::uint32_t first_vertex,
                                        std::uint32_t first_instance) noexcept {
-        if (_ready) {
+        qz_likely_if(_ready) {
             vkCmdDraw(_handle, vertices, instances, first_vertex, first_instance);
         }
         return *this;
@@ -139,7 +139,7 @@ namespace qz::gfx {
                                                std::uint32_t instances,
                                                std::uint32_t first_index,
                                                std::uint32_t first_instance) noexcept {
-        if (_ready) {
+        qz_likely_if(_ready) {
             vkCmdDrawIndexed(_handle, indices, instances, first_index, 0, first_instance);
         }
         return *this;
@@ -173,6 +173,28 @@ namespace qz::gfx {
             source.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             dest.handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1, &region);
+        return *this;
+    }
+
+    CommandBuffer& CommandBuffer::blit_image(const ImageBlit& info) noexcept {
+        const auto& source = *info.source_image;
+        const auto& dest   = info.dest_image ? *info.dest_image : source;
+        VkImageBlit blit{};
+        blit.srcSubresource.aspectMask = source.aspect;
+        blit.srcSubresource.mipLevel = info.source_mip;
+        blit.srcSubresource.baseArrayLayer = 0;
+        blit.srcSubresource.layerCount = 1;
+        blit.srcOffsets[1] = info.source_off;
+        blit.dstSubresource.aspectMask = dest.aspect;
+        blit.dstSubresource.mipLevel = info.dest_mip;
+        blit.dstSubresource.baseArrayLayer = 0;
+        blit.dstSubresource.layerCount = 1;
+        blit.dstOffsets[1] = info.dest_off;
+        vkCmdBlitImage(_handle,
+            source.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            dest.handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1, &blit,
+            VK_FILTER_LINEAR);
         return *this;
     }
 
@@ -261,8 +283,8 @@ namespace qz::gfx {
         barrier.image = info.image->handle;
         barrier.subresourceRange = {
             .aspectMask = info.image->aspect,
-            .baseMipLevel = 0,
-            .levelCount = info.image->mips,
+            .baseMipLevel = info.mip,
+            .levelCount = info.levels == 0 ? info.image->mips : info.levels,
             .baseArrayLayer = 0,
             .layerCount = 1
         };
