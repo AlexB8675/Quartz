@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <cstdio>
 
 #define qz_concat_impl(x, y) x##y
 #define qz_concat(x, y) qz_concat_impl(x, y)
@@ -55,14 +54,18 @@ qz_nodiscard bool operator ==(const type& rhs) const noexcept {                 
     #define qz_likely
 #endif
 
-#if defined(__llvm__)
+#if defined(__clang__)
     #define qz_expect(expr, weight) __builtin_expect(expr, weight)
     #define qz_weighted_if(expr, weight) if (qz_expect(expr, weight))
-    #define qz_likely_if(expr) if (qz_expect(!!(expr), true))
-    #define qz_unlikely_if(expr) if (qz_expect(!!(expr), false))
+    #define qz_likely_if(expr) if (qz_expect(static_cast<bool>(expr), true))
+    #define qz_unlikely_if(expr) if (qz_expect(static_cast<bool>(expr), false))
 #else
-    #define qz_likely_if(expr) if (!!(expr)) qz_likely
-    #define qz_unlikely_if(expr) if (!!(expr)) qz_unlikely
+    #define qz_likely_if(expr) if (static_cast<bool>(expr)) qz_likely
+    #define qz_unlikely_if(expr) if (static_cast<bool>(expr)) qz_unlikely
+#endif
+
+#if defined(_MSC_VER)
+    #pragma warning(disable: 4645)
 #endif
 
 qz_noreturn inline void qz_unreachable() {}

@@ -30,9 +30,9 @@ namespace qz::gfx {
             &buffer.handle,
             &buffer.allocation,
             &allocation_info));
+        buffer.flags = info.flags;
         buffer.capacity = info.capacity;
         buffer.mapped = allocation_info.pMappedData;
-
         return buffer;
     }
 

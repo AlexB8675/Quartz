@@ -8,9 +8,10 @@ layout (location = 0) in VertexInput {
     vec2 uvs;
 };
 
-layout (set = 0, binding = 1) uniform sampler2D[] textures;
+layout (set = 0, binding = 3) uniform sampler2D[] textures;
 
 layout (push_constant) uniform Constants {
+    uint transform_index;
     uint texture_index;
 };
 

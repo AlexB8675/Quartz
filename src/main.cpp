@@ -22,7 +22,6 @@ using namespace qz;
 struct Camera {
     struct Raw {
         glm::mat4 projection;
-        glm::mat4 model;
         glm::mat4 view;
     };
     glm::vec3 position = {1.2f, 0.4f, 0.0f };
@@ -142,8 +141,8 @@ int main() {
     });
 
     auto pipeline = gfx::Pipeline::create(context, renderer, {
-        .vertex = "../data/shaders/shader.vert.spv",
-        .fragment = "../data/shaders/shader.frag.spv",
+        .vertex = "data/shaders/shader.vert.spv",
+        .fragment = "data/shaders/shader.frag.spv",
         .attributes = {
             gfx::VertexAttribute::vec3,
             gfx::VertexAttribute::vec3,
@@ -162,13 +161,17 @@ int main() {
 
     auto scene = gfx::StaticModel::request(context, "../data/models/sponza/sponza.glb");
     auto set = gfx::DescriptorSet<>::allocate(context, pipeline.set(0));
-    auto buffer = gfx::Buffer<>::allocate(context, sizeof(Camera::Raw), meta::uniform_buffer);
+    auto camera_buf = gfx::Buffer<>::allocate(context, sizeof(Camera::Raw), meta::uniform_buffer);
+    auto model_buf = gfx::Buffer<>::allocate(context, meta::dynamic_size, meta::storage_buffer);
 
     Camera camera;
     Camera::Raw camera_data = {
         glm::perspective(glm::radians(60.0f), window.width() / (float)window.height(), 0.1f, 100.0f),
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.005f)),
         camera.view()
+    };
+
+    std::vector<glm::mat4> models{
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.005f))
     };
 
     std::size_t frame_count = 0;
@@ -181,9 +184,15 @@ int main() {
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
+        const auto transform_size = models.size() * sizeof(glm::mat4);
+        gfx::Buffer<1>::resize(context, model_buf[frame.index], transform_size);
+
         camera_data.view = camera.view();
-        buffer[frame.index].write(&camera_data, meta::whole_size);
-        gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["Camera"], buffer[frame.index]);
+        camera_buf[frame.index].write(&camera_data, meta::whole_size);
+        model_buf[frame.index].write(models.data(), transform_size);
+
+        gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["Camera"], camera_buf[frame.index]);
+        gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["Transforms"], model_buf[frame.index]);
         gfx::DescriptorSet<1>::bind(context, set[frame.index], pipeline["textures"], assets::all_textures(context));
 
         command_buffer
@@ -198,9 +207,14 @@ int main() {
             const auto lock = assets::acquire<gfx::StaticModel>();
             qz_likely_if(assets::is_ready(scene)) {
                 for (const auto& [mesh, diffuse, normal, specular, vertex, index] : assets::from_handle(scene).submeshes) {
+                    const std::array indices{
+                        static_cast<std::uint32_t>(0u),
+                        static_cast<std::uint32_t>(diffuse.index)
+                    };
                     command_buffer
                         .bind_static_mesh(mesh)
-                        .push_constants(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(std::uint32_t), &diffuse.index)
+                        .push_constants(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                        indices.size() * sizeof(std::uint32_t), indices.data())
                         .draw_indexed(index, 1, 0, 0);
                 }
             }
@@ -243,7 +257,8 @@ int main() {
     assets::free_all_resources(context);
 
     gfx::DescriptorSet<>::destroy(context, set);
-    gfx::Buffer<>::destroy(context, buffer);
+    gfx::Buffer<>::destroy(context, model_buf);
+    gfx::Buffer<>::destroy(context, camera_buf);
     gfx::Pipeline::destroy(context, pipeline);
     gfx::RenderPass::destroy(context, render_pass);
 

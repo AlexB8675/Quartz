@@ -13,7 +13,7 @@
 #include <variant>
 
 namespace qz::gfx {
-    template <std::size_t extent = meta::in_flight>
+    template <std::size_t = meta::in_flight>
     class DescriptorSet;
 
     template <>

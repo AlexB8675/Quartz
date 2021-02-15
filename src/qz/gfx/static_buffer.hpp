@@ -14,6 +14,7 @@ namespace qz::gfx {
             std::size_t capacity;
         };
         VmaAllocation allocation;
+        VkBufferUsageFlags flags;
         std::size_t capacity;
         VkBuffer handle;
         void* mapped;

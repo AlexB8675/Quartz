@@ -116,4 +116,20 @@ target_link_libraries(quartz PUBLIC
 
 if (WIN32)
     target_compile_options(assimp PUBLIC /EHsc)
-endif()
+endif ()
+
+file(GLOB SHADER_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/data/shaders/*.*")
+set(SHADER_OUTPUT_FILES "")
+foreach (SHADER ${SHADER_SOURCES})
+    get_filename_component(SHADER_NAME ${SHADER} NAME)
+    set(SHADER_OUTPUT "${CMAKE_BINARY_DIR}/data/shaders/${SHADER_NAME}.spv")
+    list(APPEND SHADER_OUTPUT_FILES ${SHADER_OUTPUT})
+    add_custom_command(OUTPUT ${SHADER_OUTPUT}
+        COMMAND glslc --target-env=vulkan1.1 ${SHADER} -o ${SHADER_OUTPUT}
+        DEPENDS ${SHADER})
+endforeach ()
+
+add_custom_target(quartz_shaders
+    ALL DEPENDS ${SHADER_OUTPUT_FILES}
+    COMMENT "Building shaders")
+add_dependencies(quartz quartz_shaders)

@@ -36,7 +36,6 @@ namespace qz::gfx {
 
         // Add default texture.
         (void)StaticTexture::allocate(context, "../data/textures/default.png");
-
         return renderer;
     }
 

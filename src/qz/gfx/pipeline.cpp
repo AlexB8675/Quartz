@@ -66,6 +66,21 @@ namespace qz::gfx {
                     });
             }
 
+            for (const auto& storage_buffer : resources.storage_buffers) {
+                const auto set_idx = compiler.get_decoration(storage_buffer.id, spv::DecorationDescriptorSet);
+                const auto binding_idx = compiler.get_decoration(storage_buffer.id, spv::DecorationBinding);
+
+                descriptor_layout[set_idx].push_back(
+                    descriptor_bindings[storage_buffer.name] = {
+                        .dynamic = false,
+                        .name    = storage_buffer.name,
+                        .index   = binding_idx,
+                        .count   = 1,
+                        .type    = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        .stage   = VK_SHADER_STAGE_VERTEX_BIT
+                    });
+            }
+
             for (const auto& push_constant : resources.push_constant_buffers) {
                 const auto& type = compiler.get_type(push_constant.type_id);
                 push_constant_range.size = compiler.get_declared_struct_size(type);
@@ -117,8 +132,7 @@ namespace qz::gfx {
                         [binding_idx](const auto& each) {
                             return each.index == binding_idx;
                         })) != layout.end()) {
-                    descriptor_bindings[uniform_buffer.name].stage =
-                        (it->stage |= VK_SHADER_STAGE_FRAGMENT_BIT);
+                    descriptor_bindings[uniform_buffer.name].stage = (it->stage |= VK_SHADER_STAGE_FRAGMENT_BIT);
                 } else {
                     layout.push_back(
                         descriptor_bindings[uniform_buffer.name] = {
@@ -127,6 +141,29 @@ namespace qz::gfx {
                             .index   = binding_idx,
                             .count   = 1,
                             .type    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                            .stage   = VK_SHADER_STAGE_FRAGMENT_BIT
+                        });
+                }
+            }
+
+            for (const auto& storage_buffer : resources.uniform_buffers) {
+                const auto set_idx = compiler.get_decoration(storage_buffer.id, spv::DecorationDescriptorSet);
+                const auto binding_idx = compiler.get_decoration(storage_buffer.id, spv::DecorationBinding);
+                auto& layout = descriptor_layout[set_idx];
+
+                if (auto it = layout.end(); (it = std::find_if(layout.begin(), layout.end(),
+                        [binding_idx](const auto& each) {
+                            return each.index == binding_idx;
+                        })) != layout.end()) {
+                    descriptor_bindings[storage_buffer.name].stage = (it->stage |= VK_SHADER_STAGE_FRAGMENT_BIT);
+                } else {
+                    layout.push_back(
+                        descriptor_bindings[storage_buffer.name] = {
+                            .dynamic = false,
+                            .name    = storage_buffer.name,
+                            .index   = binding_idx,
+                            .count   = 1,
+                            .type    = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                             .stage   = VK_SHADER_STAGE_FRAGMENT_BIT
                         });
                 }

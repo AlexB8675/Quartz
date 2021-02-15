@@ -1,4 +1,5 @@
 #version 460
+#extension GL_EXT_nonuniform_qualifier : enable
 
 layout (location = 0) in vec3 ivertex;
 layout (location = 1) in vec3 icolor;
@@ -14,12 +15,21 @@ layout (location = 0) out VertexOutput {
 layout (set = 0, binding = 0)
 uniform Camera {
     mat4 projection;
-    mat4 model;
     mat4 view;
 };
 
+layout (set = 0, binding = 1)
+readonly buffer Transforms {
+    mat4[] model;
+};
+
+layout (push_constant) uniform Constants {
+    uint transform_index;
+    uint texture_index;
+};
+
 void main() {
-    gl_Position = projection * view * model * vec4(ivertex, 1.0);
+    gl_Position = projection * view * model[transform_index] * vec4(ivertex, 1.0);
     color = icolor;
     uvs = iuvs;
 }

@@ -79,11 +79,11 @@ namespace qz::gfx {
                 }, *context.transfer, *context.graphics)
             .end();
 
-        VkSemaphoreCreateInfo transfer_semaphore_info{};
-        transfer_semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        VkSemaphoreCreateInfo semaphore_info{};
+        semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         VkSemaphore transfer_done, graphics_done;
-        qz_vulkan_check(vkCreateSemaphore(context.device, &transfer_semaphore_info, nullptr, &transfer_done));
-        qz_vulkan_check(vkCreateSemaphore(context.device, &transfer_semaphore_info, nullptr, &graphics_done));
+        qz_vulkan_check(vkCreateSemaphore(context.device, &semaphore_info, nullptr, &transfer_done));
+        qz_vulkan_check(vkCreateSemaphore(context.device, &semaphore_info, nullptr, &graphics_done));
         context.transfer->submit(transfer_cmd, {}, nullptr, transfer_done, nullptr);
 
         auto ownership_cmd = CommandBuffer::allocate(context, context.transient_pools[thread_index]);
@@ -178,14 +178,14 @@ namespace qz::gfx {
                 })
             .end();
         context.graphics->submit(mipmaps_cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, graphics_done, nullptr, request_done);
-        while (vkGetFenceStatus(context.device, request_done) != VK_SUCCESS);
+        assets::finalize(task_data->result, StaticTexture::from_raw(image));
+        vkWaitForFences(context.device, 1, &request_done, true, -1);
         vkDestroySemaphore(context.device, graphics_done, nullptr);
         vkDestroySemaphore(context.device, transfer_done, nullptr);
         vkDestroyFence(context.device, request_done, nullptr);
         StaticBuffer::destroy(context, staging);
         CommandBuffer::destroy(context, ownership_cmd);
         CommandBuffer::destroy(context, transfer_cmd);
-        assets::finalize(task_data->result, StaticTexture::from_raw(image));
         delete task_data;
     }
 
