@@ -21,14 +21,15 @@ namespace qz::gfx {
                 qz_unreachable();
             }(),
             .usage = VMA_MEMORY_USAGE_CPU_TO_GPU,
-            .capacity = size == 0 ? 256 : size,
+            .capacity = size,
         }), size);
     }
 
     void Buffer<1>::resize(const Context& context, Buffer<1>& buffer, std::size_t size) noexcept {
         if (size > buffer.capacity()) {
             const auto flags = buffer._handle.flags;
-            std::string temp((const char*)buffer.view(), size);
+            std::string temp(size, '\0');
+            std::memcpy(temp.data(), buffer.view(), size);
             StaticBuffer::destroy(context, buffer._handle);
             buffer._handle = StaticBuffer::create(context, {
                 .flags = flags,
@@ -47,19 +48,19 @@ namespace qz::gfx {
     void Buffer<1>::write(const void* data, std::size_t size, std::size_t offset) noexcept {
         qz_assert(size + offset <= _handle.capacity, "can't write past end pointer");
         _size = std::max(_size, size + offset);
-        std::memcpy(view() + offset, data, size);
+        std::memcpy(static_cast<char*>(_handle.mapped) + offset, data, size);
     }
 
     void Buffer<1>::write(const void* data, meta::whole_size_tag_t) noexcept {
         std::memcpy(_handle.mapped, data, _handle.capacity);
     }
 
-    qz_nodiscard char* Buffer<1>::view() noexcept {
-        return static_cast<char*>(_handle.mapped);
+    qz_nodiscard void* Buffer<1>::view() noexcept {
+        return _handle.mapped;
     }
 
-    qz_nodiscard const char* Buffer<1>::view() const noexcept {
-        return static_cast<const char*>(_handle.mapped);
+    qz_nodiscard const void* Buffer<1>::view() const noexcept {
+        return _handle.mapped;
     }
 
     qz_nodiscard VkDescriptorBufferInfo Buffer<1>::info() const noexcept {

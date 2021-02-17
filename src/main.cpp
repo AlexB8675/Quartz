@@ -159,7 +159,6 @@ int main() {
         .depth = true
     });
 
-    auto scene = gfx::StaticModel::request(context, "../data/models/sponza/sponza.glb");
     auto set = gfx::DescriptorSet<>::allocate(context, pipeline.set(0));
     auto camera_buf = gfx::Buffer<>::allocate(context, sizeof(Camera::Raw), meta::uniform_buffer);
     auto model_buf = gfx::Buffer<>::allocate(context, meta::dynamic_size, meta::storage_buffer);
@@ -171,7 +170,17 @@ int main() {
     };
 
     std::vector<glm::mat4> models{
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.005f))
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)),
+        glm::mat4(1.0f),
+        glm::mat4(1.0f),
+        glm::mat4(1.0f)
+    };
+
+    std::vector<meta::Handle<gfx::StaticModel>> scene{
+        gfx::StaticModel::request(context, "../data/models/sponza/sponza.glb"),
+        gfx::StaticModel::request(context, "../data/models/suzanne/suzanne.obj"),
+        gfx::StaticModel::request(context, "../data/models/dragon/dragon.obj"),
+        gfx::StaticModel::request(context, "../data/models/plane/plane.obj")
     };
 
     std::size_t frame_count = 0;
@@ -205,17 +214,19 @@ int main() {
 
         {
             const auto lock = assets::acquire<gfx::StaticModel>();
-            qz_likely_if(assets::is_ready(scene)) {
-                for (const auto& [mesh, diffuse, normal, specular, vertex, index] : assets::from_handle(scene).submeshes) {
-                    const std::array indices{
-                        static_cast<std::uint32_t>(0u),
-                        static_cast<std::uint32_t>(diffuse.index)
-                    };
-                    command_buffer
-                        .bind_static_mesh(mesh)
-                        .push_constants(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                        indices.size() * sizeof(std::uint32_t), indices.data())
-                        .draw_indexed(index, 1, 0, 0);
+            for (std::size_t i = 0; i < scene.size(); ++i) {
+                qz_likely_if(assets::is_ready(scene[i])) {
+                    for (const auto& [mesh, diffuse, normal, specular, vertex, index] : assets::from_handle(scene[i]).submeshes) {
+                        const std::array indices{
+                            static_cast<std::uint32_t>(i),
+                            static_cast<std::uint32_t>(diffuse.index)
+                        };
+                        command_buffer
+                            .bind_static_mesh(mesh)
+                            .push_constants(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                            indices.size() * sizeof(std::uint32_t), indices.data())
+                            .draw_indexed(index, 1, 0, 0);
+                    }
                 }
             }
         }

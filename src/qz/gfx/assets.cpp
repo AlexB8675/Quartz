@@ -3,6 +3,7 @@
 #include <qz/gfx/static_mesh.hpp>
 #include <qz/gfx/context.hpp>
 #include <qz/gfx/assets.hpp>
+#include <qz/gfx/queue.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -47,6 +48,7 @@ namespace qz::assets {
     }
 
     void free_all_resources(const gfx::Context& context) noexcept {
+        context.transfer->wait_idle();
         for (auto& [mesh, _] : assets<gfx::StaticMesh>) {
             gfx::StaticMesh::destroy(context, mesh);
         }

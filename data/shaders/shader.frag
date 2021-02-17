@@ -16,5 +16,5 @@ layout (push_constant) uniform Constants {
 };
 
 void main() {
-    fragment = vec4(texture(textures[texture_index], uvs).rgb, 1.0);
+    fragment = vec4(texture(textures[texture_index], uvs));
 }

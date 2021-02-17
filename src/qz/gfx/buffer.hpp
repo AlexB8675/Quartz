@@ -26,8 +26,8 @@ namespace qz::gfx {
 
         void write(const void*, std::size_t, std::size_t = 0) noexcept;
         void write(const void*, meta::whole_size_tag_t) noexcept;
-        qz_nodiscard char* view() noexcept;
-        qz_nodiscard const char* view() const noexcept;
+        qz_nodiscard void* view() noexcept;
+        qz_nodiscard const void* view() const noexcept;
         qz_nodiscard VkDescriptorBufferInfo info() const noexcept;
         qz_nodiscard std::size_t size() const noexcept;
         qz_nodiscard std::size_t capacity() const noexcept;

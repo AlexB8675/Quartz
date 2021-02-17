@@ -9,6 +9,8 @@
 
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
+#include <assimp/IOStream.hpp>
+#include <assimp/IOSystem.hpp>
 #include <assimp/scene.h>
 
 #include <glm/vec3.hpp>
@@ -45,7 +47,7 @@ namespace qz::gfx {
         material->GetTexture(type, 0, &str);
         const auto file_name = std::string(path) + "/" + str.C_Str();
 
-        std::lock_guard lock(mutex);
+        std::lock_guard<std::mutex> lock(mutex);
         qz_likely_if(cache.contains(file_name)) {
             return cache[file_name];
         }
@@ -123,10 +125,13 @@ namespace qz::gfx {
     static void do_model_load(ftl::TaskScheduler*, void* ptr) noexcept {
         const auto* task_data = static_cast<const TaskData<StaticModel>*>(ptr);
         auto& [result, context, path] = *task_data;
-        auto scene_file = util::FileView::create(path);
         auto importer = new Assimp::Importer();
-        const auto scene = importer->ReadFileFromMemory(scene_file.data(), scene_file.size(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_CalcTangentSpace, path.data());
-        util::FileView::destroy(scene_file);
+        const auto post_process =
+            aiProcess_Triangulate |
+            aiProcess_FlipUVs     |
+            aiProcess_GenNormals  |
+            aiProcess_CalcTangentSpace;
+        const auto scene = importer->ReadFile(path.data(), post_process);
         qz_assert(scene && !scene->mFlags && scene->mRootNode, "failed to load model");
         StaticModel model;
         process_node(*context, scene, scene->mRootNode, model, path.substr(0, path.find_last_of('/')));

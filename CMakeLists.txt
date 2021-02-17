@@ -115,7 +115,7 @@ target_link_libraries(quartz PUBLIC
     spirv-cross-glsl)
 
 if (WIN32)
-    target_compile_options(assimp PUBLIC /EHsc)
+    target_compile_options(assimp PUBLIC /EHsc /w)
 endif ()
 
 file(GLOB SHADER_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/data/shaders/*.*")
