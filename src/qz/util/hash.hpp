@@ -2,7 +2,11 @@
 
 #include <qz/gfx/pipeline.hpp>
 
+#include <qz/meta/types.hpp>
+
 #include <qz/util/macros.hpp>
+
+#include <glm/gtx/hash.hpp>
 
 #include <type_traits>
 #include <utility>
@@ -31,4 +35,5 @@ namespace std {
 
     qz_make_hashable(qz::gfx::DescriptorBinding, dynamic, name, index, count, type, stage);
     qz_make_hashable(VkDescriptorImageInfo, sampler, imageView, imageLayout);
+    qz_make_hashable(qz::meta::Vertex, position, normals, uvs, tangents, bitangents);
 } // namespace std

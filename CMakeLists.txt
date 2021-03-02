@@ -32,6 +32,10 @@ set(ASSIMP_BUILD_3DS_IMPORTER ON CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(ext/assimp)
 
+if (WIN32)
+    target_compile_options(assimp PUBLIC /EHsc /w)
+endif ()
+
 add_subdirectory(ext/glm)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -113,10 +117,6 @@ target_link_libraries(quartz PUBLIC
     assimp
     Vulkan::Vulkan
     spirv-cross-glsl)
-
-if (WIN32)
-    target_compile_options(assimp PUBLIC /EHsc /w)
-endif ()
 
 file(GLOB SHADER_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/data/shaders/*.*")
 set(SHADER_OUTPUT_FILES "")

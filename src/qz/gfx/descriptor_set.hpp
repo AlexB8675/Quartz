@@ -37,7 +37,7 @@ namespace qz::gfx {
 
     template <>
     class DescriptorSet<> {
-        meta::in_flight_array<DescriptorSet<1>> _handles;
+        meta::in_flight_array_t<DescriptorSet<1>> _handles;
     public:
         qz_nodiscard static DescriptorSet<> allocate(const Context&, const DescriptorSetLayout&) noexcept;
         static void destroy(const Context&, DescriptorSet<>&) noexcept;

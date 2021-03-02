@@ -17,6 +17,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <span>
+
 using namespace qz;
 
 struct Camera {
@@ -171,16 +173,16 @@ int main() {
 
     std::vector<glm::mat4> models{
         glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)),
+       /* glm::mat4(1.0f),
         glm::mat4(1.0f),
-        glm::mat4(1.0f),
-        glm::mat4(1.0f)
+        glm::mat4(1.0f)*/
     };
 
     std::vector<meta::Handle<gfx::StaticModel>> scene{
-        gfx::StaticModel::request(context, "../data/models/sponza/sponza.glb"),
-        gfx::StaticModel::request(context, "../data/models/suzanne/suzanne.obj"),
+        gfx::StaticModel::request(context, "../data/models/sponza/sponza.obj"),
+        /*gfx::StaticModel::request(context, "../data/models/suzanne/suzanne.obj"),
         gfx::StaticModel::request(context, "../data/models/dragon/dragon.obj"),
-        gfx::StaticModel::request(context, "../data/models/plane/plane.obj")
+        gfx::StaticModel::request(context, "../data/models/plane/plane.obj")*/
     };
 
     std::size_t frame_count = 0;
@@ -223,8 +225,7 @@ int main() {
                         };
                         command_buffer
                             .bind_static_mesh(mesh)
-                            .push_constants(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                            indices.size() * sizeof(std::uint32_t), indices.data())
+                            .push_constants(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, std::span(indices).size_bytes(), indices.data())
                             .draw_indexed(index, 1, 0, 0);
                     }
                 }

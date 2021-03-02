@@ -2,13 +2,13 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 layout (location = 0) in vec3 ivertex;
-layout (location = 1) in vec3 icolor;
+layout (location = 1) in vec3 inormal;
 layout (location = 2) in vec2 iuvs;
 layout (location = 3) in vec3 itangents;
 layout (location = 4) in vec3 ibitangents;
 
 layout (location = 0) out VertexOutput {
-    vec3 color;
+    vec3 normal;
     vec2 uvs;
 };
 
@@ -30,6 +30,6 @@ layout (push_constant) uniform Constants {
 
 void main() {
     gl_Position = projection * view * model[transform_index] * vec4(ivertex, 1.0);
-    color = icolor;
+    normal = inormal;
     uvs = iuvs;
 }

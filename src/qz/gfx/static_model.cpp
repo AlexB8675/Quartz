@@ -6,17 +6,16 @@
 
 #include <qz/util/file_view.hpp>
 #include <qz/util/macros.hpp>
+#include <qz/util/hash.hpp>
 
-#include <assimp/postprocess.h>
-#include <assimp/Importer.hpp>
-#include <assimp/IOStream.hpp>
-#include <assimp/IOSystem.hpp>
-#include <assimp/scene.h>
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
 
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
 
 #include <unordered_map>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -26,14 +25,6 @@ namespace qz::gfx {
         meta::Handle<StaticModel> handle;
         const Context* context;
         std::string path;
-    };
-
-    struct Vertex {
-        glm::vec3 position;
-        glm::vec3 normals;
-        glm::vec2 uvs;
-        glm::vec3 tangents;
-        glm::vec3 bitangents;
     };
 
     qz_nodiscard static meta::Handle<StaticTexture> try_load_texture(const Context& context, const aiMaterial* material, aiTextureType type, std::string_view path) noexcept {
@@ -46,17 +37,17 @@ namespace qz::gfx {
         aiString str;
         material->GetTexture(type, 0, &str);
         const auto file_name = std::string(path) + "/" + str.C_Str();
+        const auto format = type == aiTextureType_DIFFUSE ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
 
         std::lock_guard<std::mutex> lock(mutex);
         qz_likely_if(cache.contains(file_name)) {
             return cache[file_name];
         }
-        return cache[file_name] =
-            StaticTexture::request(context, file_name, type == aiTextureType_DIFFUSE ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM);
+        return cache[file_name] = StaticTexture::request(context, file_name, format);
     }
 
     qz_nodiscard static TexturedMesh load_textured_mesh(const Context& context, const aiScene* scene, const aiMesh* mesh, std::string_view path) noexcept {
-        std::vector<Vertex> geometry;
+        std::vector<meta::Vertex> geometry;
         std::vector<std::uint32_t> indices;
 
         geometry.reserve(mesh->mNumVertices);
@@ -98,7 +89,7 @@ namespace qz::gfx {
             }
         }
         const auto material = scene->mMaterials[mesh->mMaterialIndex];
-        const auto vertex_size = geometry.size() * (sizeof(Vertex) / sizeof(float));
+        const auto vertex_size = geometry.size() * (sizeof(meta::Vertex) / sizeof(float));
         const auto index_size = indices.size();
         std::vector<float> vertices(vertex_size);
         std::memcpy(vertices.data(), geometry.data(), sizeof(float) * vertices.size());
@@ -152,8 +143,7 @@ namespace qz::gfx {
                 }
                 return VK_NOT_READY;
             },
-            .cleanup = [task_data, importer]() {
-                delete importer;
+            .cleanup = [task_data]() {
                 delete task_data;
             }
         });

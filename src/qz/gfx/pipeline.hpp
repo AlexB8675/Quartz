@@ -29,22 +29,22 @@ namespace qz::gfx {
         qz_make_equal_to(DescriptorBinding, dynamic, name, index, count, type, stage);
     };
 
-    using DescriptorLayout = std::vector<DescriptorBinding>;
+    using descriptor_layout_t = std::vector<DescriptorBinding>;
 
     struct DescriptorSetLayout {
         VkDescriptorSetLayout handle;
-        DescriptorLayout descriptors;
+        descriptor_layout_t descriptors;
     };
 
-    using DescriptorSetLayouts = std::vector<DescriptorSetLayout>;
-    using DescriptorBindings   = std::unordered_map<std::string, DescriptorBinding>;
+    using descriptor_set_layouts_t = std::vector<DescriptorSetLayout>;
+    using descriptor_bindings_t    = std::unordered_map<std::string, DescriptorBinding>;
 
     struct Pipeline {
     private:
         VkPipeline _handle;
         VkPipelineLayout _layout;
-        DescriptorBindings _bindings;
-        DescriptorSetLayouts _descriptors;
+        descriptor_bindings_t _bindings;
+        descriptor_set_layouts_t _descriptors;
     public:
         struct CreateInfo {
             const char* vertex;

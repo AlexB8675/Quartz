@@ -35,7 +35,7 @@ namespace qz::gfx {
 
     template <>
     class Buffer<> {
-        meta::in_flight_array<Buffer<1>> _handles;
+        meta::in_flight_array_t<Buffer<1>> _handles;
     public:
         qz_nodiscard static Buffer<> allocate(const Context&, std::size_t, meta::BufferKind) noexcept;
         static void resize(const Context&, Buffer<>&, std::size_t) noexcept;

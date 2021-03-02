@@ -4,7 +4,7 @@
 layout (location = 0) out vec4 fragment;
 
 layout (location = 0) in VertexInput {
-    vec3 color;
+    vec3 normal;
     vec2 uvs;
 };
 

@@ -14,4 +14,5 @@ namespace qz::meta {
     constexpr auto in_flight = 2u;
     constexpr auto external_subpass = ~0u;
     constexpr auto family_ignored = ~0u;
+    constexpr auto default_texture = 0u;
 } // namespace qz::meta

@@ -122,7 +122,6 @@ namespace qz::gfx {
                 .height = swapchain.extent.height
             });
         }
-
         return swapchain;
     }
 

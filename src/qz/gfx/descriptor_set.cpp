@@ -21,7 +21,7 @@ namespace qz::gfx {
     }
 
     qz_nodiscard static bool operator !=(const std::vector<VkDescriptorImageInfo>& lhs, const std::vector<VkDescriptorImageInfo>& rhs) noexcept {
-        if (lhs.size() != rhs.size()) {
+        qz_unlikely_if(lhs.size() != rhs.size()) {
             return true;
         }
         for (std::size_t i = 0; i < lhs.size(); ++i) {

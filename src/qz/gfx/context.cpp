@@ -173,7 +173,7 @@ namespace qz::gfx {
             return 0;
         };
 
-        qz_load_instance_function(context, vkCreateDebugUtilsMessengerEXT);
+        qz_instance_function(context, vkCreateDebugUtilsMessengerEXT);
         qz_vulkan_check(vkCreateDebugUtilsMessengerEXT(context.instance, &debug_callback_create_info, nullptr, &context.validation));
 #endif
 
@@ -366,7 +366,7 @@ namespace qz::gfx {
         vmaDestroyAllocator(context.allocator);
         vkDestroyDevice(context.device, nullptr);
 #if defined(quartz_debug)
-        qz_load_instance_function(context, vkDestroyDebugUtilsMessengerEXT);
+        qz_instance_function(context, vkDestroyDebugUtilsMessengerEXT);
         vkDestroyDebugUtilsMessengerEXT(context.instance, context.validation, nullptr);
 #endif
         vkDestroyInstance(context.instance, nullptr);

@@ -65,10 +65,10 @@ qz_nodiscard bool operator ==(const type& rhs) const noexcept {                 
 #endif
 
 #if defined(_MSC_VER)
-    #pragma warning(disable: 4645)
+    #define qz_unreachable() __assume(false)
+#else
+    #define qz_unreachable() __builtin_unreachable()
 #endif
-
-qz_noreturn inline void qz_unreachable() {}
 
 #define qz_force_assert(msg) qz_assert(false, msg), qz_unreachable()
 #if defined(quartz_debug)
@@ -79,4 +79,4 @@ qz_noreturn inline void qz_unreachable() {}
     #define qz_vulkan_check(expr) (void)(expr)
 #endif
 
-#define qz_load_instance_function(ctx, name) const auto name = reinterpret_cast<PFN_##name>(vkGetInstanceProcAddr(ctx.instance, #name))
+#define qz_instance_function(ctx, name) const auto name = reinterpret_cast<PFN_##name>(vkGetInstanceProcAddr(ctx.instance, #name))

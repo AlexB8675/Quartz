@@ -37,9 +37,9 @@ namespace qz::gfx {
         VkPushConstantRange push_constant_range{};
         push_constant_range.offset = 0;
 
-        DescriptorBindings descriptor_bindings;
+        descriptor_bindings_t descriptor_bindings;
         std::vector<std::uint32_t> vertex_input_locations;
-        std::map<std::size_t, DescriptorLayout> descriptor_layout;
+        std::map<std::size_t, descriptor_layout_t> descriptor_layout;
         { // Vertex shader.
             const auto binary = load_spirv_code(info.vertex);
             const auto compiler = spirv_cross::CompilerGLSL((const std::uint32_t*)binary.data(), binary.size() / sizeof(std::uint32_t));
@@ -295,7 +295,7 @@ namespace qz::gfx {
         pipeline_dynamic_states.dynamicStateCount = info.states.size();
         pipeline_dynamic_states.pDynamicStates = info.states.data();
 
-        DescriptorSetLayouts set_layouts{};
+        descriptor_set_layouts_t set_layouts{};
         set_layouts.reserve(descriptor_layout.size());
         for (const auto& [_, descriptors] : descriptor_layout) {
             if (!renderer.layout_cache.contains(descriptors)) {

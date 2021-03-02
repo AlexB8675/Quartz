@@ -31,12 +31,12 @@ namespace qz::gfx {
         std::uint32_t image_idx;
         std::uint32_t frame_idx;
 
-        meta::in_flight_array<CommandBuffer> gfx_cmds;
-        meta::in_flight_array<VkSemaphore> img_ready;
-        meta::in_flight_array<VkSemaphore> gfx_done;
-        meta::in_flight_array<VkFence> cmd_wait;
+        meta::in_flight_array_t<CommandBuffer> gfx_cmds;
+        meta::in_flight_array_t<VkSemaphore> img_ready;
+        meta::in_flight_array_t<VkSemaphore> gfx_done;
+        meta::in_flight_array_t<VkFence> cmd_wait;
 
-        std::unordered_map<DescriptorLayout, VkDescriptorSetLayout> layout_cache;
+        std::unordered_map<descriptor_layout_t, VkDescriptorSetLayout> layout_cache;
 
         qz_nodiscard static Renderer create(const Context&, const Window&) noexcept;
         static void destroy(const Context&, Renderer&) noexcept;
