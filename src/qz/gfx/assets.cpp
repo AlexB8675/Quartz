@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <chrono>
 #include <mutex>
 
 namespace qz::assets {
@@ -18,6 +19,14 @@ namespace qz::assets {
 
     template <typename T>
     static std::mutex mutex;
+
+    template <typename T>
+    qz_nodiscard static bool all_ready() noexcept {
+        std::lock_guard<std::mutex> lock(mutex<T>);
+        return std::all_of(assets<T>.begin(), assets<T>.end(), [](const auto& each) {
+            return each.second;
+        });
+    }
 
     template <typename T>
     qz_nodiscard meta::Handle<T> emplace_empty() noexcept {
@@ -49,22 +58,30 @@ namespace qz::assets {
 
     void free_all_resources(const gfx::Context& context) noexcept {
         context.transfer->wait_idle();
+        while (!all_ready<gfx::StaticMesh>()) {
+            using namespace std::literals;
+            std::this_thread::sleep_for(100ms);
+        }
         for (auto& [mesh, _] : assets<gfx::StaticMesh>) {
             gfx::StaticMesh::destroy(context, mesh);
         }
         assets<gfx::StaticMesh>.clear();
 
+        while (!all_ready<gfx::StaticTexture>()) {
+            using namespace std::literals;
+            std::this_thread::sleep_for(100ms);
+        }
         for (auto& [texture, _] : assets<gfx::StaticTexture>) {
             gfx::StaticTexture::destroy(context, texture);
         }
         assets<gfx::StaticTexture>.clear();
     }
 
-    gfx::StaticTexture& default_texture() noexcept {
+    qz_nodiscard gfx::StaticTexture& default_texture() noexcept {
         return assets<gfx::StaticTexture>[0].first;
     }
 
-    std::vector<VkDescriptorImageInfo> all_textures(const gfx::Context& context) noexcept {
+    qz_nodiscard std::vector<VkDescriptorImageInfo> all_textures(const gfx::Context& context) noexcept {
         std::lock_guard<std::mutex> lock(mutex<gfx::StaticTexture>);
         std::vector<VkDescriptorImageInfo> descriptors{};
         descriptors.reserve(assets<gfx::StaticTexture>.size());

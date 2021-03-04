@@ -20,7 +20,6 @@ namespace qz::gfx {
         void submit(const CommandBuffer&, VkPipelineStageFlags, VkSemaphore, VkSemaphore, VkFence) noexcept;
         void present(const Swapchain&, std::uint32_t, VkSemaphore) noexcept;
         void wait_idle() const noexcept;
-
         qz_nodiscard std::uint32_t family() const noexcept;
     };
 } // namespace qz::gfx

@@ -8,8 +8,11 @@
 #include <qz/util/macros.hpp>
 #include <qz/util/hash.hpp>
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+#include <assimp/postprocess.h>
+#include <assimp/Importer.hpp>
+#include <assimp/IOStream.hpp>
+#include <assimp/IOSystem.hpp>
+#include <assimp/scene.h>
 
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
@@ -20,6 +23,8 @@
 #include <vector>
 
 namespace qz::gfx {
+    using TextureCache = std::unordered_map<std::string, meta::Handle<StaticTexture>>;
+
     template <>
     struct TaskData<StaticModel> {
         meta::Handle<StaticModel> handle;
@@ -27,26 +32,30 @@ namespace qz::gfx {
         std::string path;
     };
 
-    qz_nodiscard static meta::Handle<StaticTexture> try_load_texture(const Context& context, const aiMaterial* material, aiTextureType type, std::string_view path) noexcept {
-        static std::unordered_map<std::string, meta::Handle<StaticTexture>> cache;
-        static std::mutex mutex;
-
+    qz_nodiscard static meta::Handle<StaticTexture> try_load_texture(const Context& context,
+                                                                     const aiMaterial* material,
+                                                                     aiTextureType type,
+                                                                     TextureCache& texture_cache,
+                                                                     std::string_view path) noexcept {
         qz_likely_if(!material->GetTextureCount(type)) {
-            return { 0 };
+            return { meta::default_texture };
         }
         aiString str;
         material->GetTexture(type, 0, &str);
         const auto file_name = std::string(path) + "/" + str.C_Str();
         const auto format = type == aiTextureType_DIFFUSE ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
-
-        std::lock_guard<std::mutex> lock(mutex);
-        qz_likely_if(cache.contains(file_name)) {
-            return cache[file_name];
+        const auto [cached, miss] = texture_cache.try_emplace(file_name);
+        qz_likely_if(!miss) {
+            return cached->second;
         }
-        return cache[file_name] = StaticTexture::request(context, file_name, format);
+        return cached->second = StaticTexture::request(context, file_name, format);
     }
 
-    qz_nodiscard static TexturedMesh load_textured_mesh(const Context& context, const aiScene* scene, const aiMesh* mesh, std::string_view path) noexcept {
+    qz_nodiscard static TexturedMesh load_textured_mesh(const Context& context,
+                                                        const aiScene* scene,
+                                                        const aiMesh* mesh,
+                                                        TextureCache& texture_cache,
+                                                        std::string_view path) noexcept {
         std::vector<meta::Vertex> geometry;
         std::vector<std::uint32_t> indices;
 
@@ -95,28 +104,35 @@ namespace qz::gfx {
         std::memcpy(vertices.data(), geometry.data(), sizeof(float) * vertices.size());
         return {
             .mesh = StaticMesh::request(context, { std::move(vertices), std::move(indices) }),
-            .diffuse = try_load_texture(context, material, aiTextureType_DIFFUSE, path),
-            .normal = try_load_texture(context, material, aiTextureType_HEIGHT, path),
-            .spec = try_load_texture(context, material, aiTextureType_SPECULAR, path),
+            .diffuse = try_load_texture(context, material, aiTextureType_DIFFUSE, texture_cache, path),
+            .normal = try_load_texture(context, material, aiTextureType_HEIGHT, texture_cache, path),
+            .spec = try_load_texture(context, material, aiTextureType_SPECULAR, texture_cache, path),
             .vertex_count = vertex_size,
             .index_count = index_size
         };
     }
 
-    static void process_node(const Context& context, const aiScene* scene, const aiNode* node, StaticModel& model, std::string_view path) noexcept {
+    static void process_node(const Context& context,
+                             const aiScene* scene,
+                             const aiNode* node,
+                             StaticModel& model,
+                             TextureCache& texture_cache,
+                             std::string_view path) noexcept {
         for (std::size_t i = 0; i < node->mNumMeshes; i++) {
-            model.submeshes.emplace_back(load_textured_mesh(context, scene, scene->mMeshes[node->mMeshes[i]], path));
+            model.submeshes.emplace_back(load_textured_mesh(context, scene, scene->mMeshes[node->mMeshes[i]], texture_cache, path));
         }
 
         for (std::size_t i = 0; i < node->mNumChildren; i++) {
-            process_node(context, scene, node->mChildren[i], model, path);
+            process_node(context, scene, node->mChildren[i], model, texture_cache, path);
         }
     }
 
     static void do_model_load(ftl::TaskScheduler*, void* ptr) noexcept {
+        namespace fs = std::filesystem;
         const auto* task_data = static_cast<const TaskData<StaticModel>*>(ptr);
         auto& [result, context, path] = *task_data;
         auto importer = new Assimp::Importer();
+        auto texture_cache = new TextureCache();
         const auto post_process =
             aiProcess_Triangulate |
             aiProcess_FlipUVs     |
@@ -125,13 +141,13 @@ namespace qz::gfx {
         const auto scene = importer->ReadFile(path.data(), post_process);
         qz_assert(scene && !scene->mFlags && scene->mRootNode, "failed to load model");
         StaticModel model;
-        process_node(*context, scene, scene->mRootNode, model, path.substr(0, path.find_last_of('/')));
+        process_node(*context, scene, scene->mRootNode, model, *texture_cache, fs::path(path).parent_path().generic_string());
         assets::finalize(result, std::move(model));
         context->task_manager->insert({
             .poll = [result = result]() -> VkResult {
                 const auto model_lock = assets::acquire<StaticModel>();
                 const auto handle     = assets::from_handle(result);
-                qz_unlikely_if(std::all_of(handle.submeshes.begin(), handle.submeshes.end(), [](const auto& each) {
+                qz_likely_if(std::all_of(handle.submeshes.begin(), handle.submeshes.end(), [](const auto& each) {
                     const auto mesh_lock    = assets::acquire<StaticMesh>();
                     const auto texture_lock = assets::acquire<StaticTexture>();
                     return assets::is_ready(each.mesh)    &&
@@ -143,8 +159,10 @@ namespace qz::gfx {
                 }
                 return VK_NOT_READY;
             },
-            .cleanup = [task_data]() {
+            .cleanup = [task_data, importer, texture_cache]() {
                 delete task_data;
+                delete importer;
+                delete texture_cache;
             }
         });
     }

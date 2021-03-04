@@ -172,17 +172,17 @@ int main() {
     };
 
     std::vector<glm::mat4> models{
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)),
-       /* glm::mat4(1.0f),
+        //glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)),
+        glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f)),
         glm::mat4(1.0f),
-        glm::mat4(1.0f)*/
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f))
     };
 
     std::vector<meta::Handle<gfx::StaticModel>> scene{
-        gfx::StaticModel::request(context, "../data/models/sponza/sponza.obj"),
-        /*gfx::StaticModel::request(context, "../data/models/suzanne/suzanne.obj"),
+        //gfx::StaticModel::request(context, "../data/models/sponza/sponza.obj"),
+        gfx::StaticModel::request(context, "../data/models/suzanne/suzanne.obj"),
         gfx::StaticModel::request(context, "../data/models/dragon/dragon.obj"),
-        gfx::StaticModel::request(context, "../data/models/plane/plane.obj")*/
+        gfx::StaticModel::request(context, "../data/models/plane/plane.obj")
     };
 
     std::size_t frame_count = 0;
@@ -245,7 +245,7 @@ int main() {
                     .old_layout = VK_IMAGE_LAYOUT_UNDEFINED,
                     .new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                 })
-                .copy_image(render_pass.image("color"), *frame.image)
+                .copy_image(render_pass.image(0), *frame.image)
                 .insert_layout_transition({
                     .image = frame.image,
                     .mip = 0,

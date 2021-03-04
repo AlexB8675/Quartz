@@ -8,6 +8,7 @@
 
 #include <qz/util/file_view.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 #include <optional>
@@ -28,10 +29,10 @@ namespace qz::gfx {
         const auto* task_data = static_cast<const TaskData<StaticTexture>*>(ptr);
         const auto thread_index = scheduler->GetCurrentThreadIndex();
         const auto& context = *task_data->context;
-        auto file = util::FileView::create(task_data->path);
 
         std::int32_t width, height, channels = 4;
-        const auto* image_data = stbi_load_from_memory((const std::uint8_t*)file.data(), file.size(), &width, &height, &channels, STBI_rgb_alpha);
+        auto file = util::FileView::create(task_data->path);
+        auto* image_data = stbi_load_from_memory(static_cast<const std::uint8_t*>(file.data()), file.size(), &width, &height, &channels, STBI_rgb_alpha);
         util::FileView::destroy(file);
 
         auto image = Image::create(context, {
@@ -43,13 +44,13 @@ namespace qz::gfx {
                      VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                      VK_IMAGE_USAGE_SAMPLED_BIT
         });
-
         auto staging = StaticBuffer::create(context, {
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VMA_MEMORY_USAGE_CPU_ONLY,
             (std::size_t)width * height * 4
         });
         std::memcpy(staging.mapped, image_data, staging.capacity);
+        stbi_image_free(image_data);
 
         auto transfer_cmd = CommandBuffer::allocate(context, context.transfer_pools[thread_index]);
         transfer_cmd
@@ -178,7 +179,6 @@ namespace qz::gfx {
                 })
             .end();
         context.graphics->submit(mipmaps_cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, graphics_done, nullptr, request_done);
-        assets::finalize(task_data->result, StaticTexture::from_raw(image));
         vkWaitForFences(context.device, 1, &request_done, true, -1);
         vkDestroySemaphore(context.device, graphics_done, nullptr);
         vkDestroySemaphore(context.device, transfer_done, nullptr);
@@ -186,6 +186,7 @@ namespace qz::gfx {
         StaticBuffer::destroy(context, staging);
         CommandBuffer::destroy(context, ownership_cmd);
         CommandBuffer::destroy(context, transfer_cmd);
+        assets::finalize(task_data->result, StaticTexture::from_raw(image));
         delete task_data;
     }
 

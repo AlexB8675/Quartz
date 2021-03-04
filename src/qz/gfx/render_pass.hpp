@@ -61,7 +61,9 @@ namespace qz::gfx {
         qz_nodiscard static RenderPass create(const Context&, CreateInfo&&) noexcept;
         static void destroy(const Context&, RenderPass&) noexcept;
 
+        qz_nodiscard const Image& image(std::size_t) const noexcept;
         qz_nodiscard const Image& image(std::string_view) const noexcept;
+        qz_nodiscard const Attachment& attachment(std::size_t) const noexcept;
         qz_nodiscard const Attachment& attachment(std::string_view) const noexcept;
         qz_nodiscard const VkFramebuffer& framebuffer(std::size_t) const noexcept;
         qz_nodiscard const std::vector<VkClearValue>& clears() const noexcept;

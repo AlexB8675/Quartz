@@ -11,6 +11,7 @@
 
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 namespace qz::gfx {
     template <std::size_t = meta::in_flight>

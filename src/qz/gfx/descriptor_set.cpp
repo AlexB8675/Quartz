@@ -20,18 +20,6 @@ namespace qz::gfx {
         return lhs.imageView != rhs.imageView;
     }
 
-    qz_nodiscard static bool operator !=(const std::vector<VkDescriptorImageInfo>& lhs, const std::vector<VkDescriptorImageInfo>& rhs) noexcept {
-        qz_unlikely_if(lhs.size() != rhs.size()) {
-            return true;
-        }
-        for (std::size_t i = 0; i < lhs.size(); ++i) {
-            qz_unlikely_if(lhs[i] != rhs[i]) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     qz_nodiscard DescriptorSet<1> DescriptorSet<1>::from_raw(VkDescriptorSet handle) noexcept {
         DescriptorSet set{};
         set._handle = handle;
@@ -48,10 +36,10 @@ namespace qz::gfx {
 
         constexpr auto count = 4096u;
         VkDescriptorSetVariableDescriptorCountAllocateInfo variable_count{};
+        variable_count.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+        variable_count.descriptorSetCount = 1;
+        variable_count.pDescriptorCounts = &count;
         if (const auto& last = layout.descriptors.back(); last.dynamic) {
-            variable_count.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-            variable_count.descriptorSetCount = 1;
-            variable_count.pDescriptorCounts = &count;
             allocate_info.pNext = &variable_count;
         }
 

@@ -33,7 +33,6 @@ namespace qz::gfx {
         handle = {};
     }
 
-
     CommandBuffer& CommandBuffer::begin() noexcept {
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -184,12 +183,16 @@ namespace qz::gfx {
         blit.srcSubresource.mipLevel = info.source_mip;
         blit.srcSubresource.baseArrayLayer = 0;
         blit.srcSubresource.layerCount = 1;
-        blit.srcOffsets[1] = info.source_off;
+        blit.srcOffsets[1].x = info.source_off.x ? info.source_off.x : 1;
+        blit.srcOffsets[1].y = info.source_off.y ? info.source_off.y : 1;
+        blit.srcOffsets[1].z = info.source_off.z ? info.source_off.z : 1;
         blit.dstSubresource.aspectMask = dest.aspect;
         blit.dstSubresource.mipLevel = info.dest_mip;
         blit.dstSubresource.baseArrayLayer = 0;
         blit.dstSubresource.layerCount = 1;
-        blit.dstOffsets[1] = info.dest_off;
+        blit.dstOffsets[1].x = info.dest_off.x ? info.dest_off.x : 1;
+        blit.dstOffsets[1].y = info.dest_off.y ? info.dest_off.y : 1;
+        blit.dstOffsets[1].z = info.dest_off.z ? info.dest_off.z : 1;
         vkCmdBlitImage(_handle,
             source.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             dest.handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,

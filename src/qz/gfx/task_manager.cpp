@@ -7,7 +7,7 @@ namespace qz::gfx {
         });
     }
 
-    ftl::TaskScheduler& TaskManager::handle() noexcept {
+    qz_nodiscard ftl::TaskScheduler& TaskManager::handle() noexcept {
         return _handle;
     }
 
@@ -23,10 +23,6 @@ namespace qz::gfx {
 
     void TaskManager::tick() noexcept {
         std::lock_guard<std::mutex> lock(_mutex);
-        qz_likely_if(_tasks.empty()) {
-            return;
-        }
-
         for (std::size_t i = 0; i < _tasks.size(); ++i) {
             qz_unlikely_if(_tasks[i].poll() == VK_SUCCESS) {
                 _tasks[i].cleanup();

@@ -27,19 +27,26 @@
 #define qz_for_each_impl(n, f, ...) qz_concat(qz_for_each_, n)(f, __VA_ARGS__)
 #define qz_for_each(f, ...) qz_for_each_impl(qz_for_each_arg_idx(__VA_ARGS__), f, __VA_ARGS__)
 
-#define qz_make_hashable(type, ...)                                                     \
-template <>                                                                             \
-struct hash<type> {                                                                     \
-    qz_nodiscard size_t operator ()(const type& value) const noexcept {                 \
-        return qz::util::hash(0, qz_for_each(qz_access_member, __VA_ARGS__));           \
-    }                                                                                   \
+#define qz_make_hashable(type, ...)                                            \
+template <>                                                                    \
+struct hash<type> {                                                            \
+    qz_nodiscard size_t operator ()(const type& value) const noexcept {        \
+        return qz::util::hash(0, qz_for_each(qz_access_member, __VA_ARGS__));  \
+    }                                                                          \
 }
 
-#define qz_make_equal_to(type, ...)                                                 \
-qz_nodiscard bool operator ==(const type& rhs) const noexcept {                     \
-    return [](auto&&... args) {                                                     \
-        return (args && ...);                                                       \
-    }(qz_for_each(qz_compare, __VA_ARGS__));                                        \
+#define qz_make_hashable_pred(type, name, pred)                        \
+struct hash<type> {                                                    \
+    qz_nodiscard size_t operator ()(const type& name) const noexcept { \
+        return pred();                                                 \
+    }                                                                  \
+}
+
+#define qz_make_equal_to(type, ...)                             \
+qz_nodiscard bool operator ==(const type& rhs) const noexcept { \
+    return [](auto&&... args) {                                 \
+        return (args && ...);                                   \
+    }(qz_for_each(qz_compare, __VA_ARGS__));                    \
 }
 
 #if _MSVC_LANG >= 201703L || __cplusplus >= 201703L

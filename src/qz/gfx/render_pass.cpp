@@ -16,7 +16,6 @@ namespace qz::gfx {
             case VK_IMAGE_ASPECT_STENCIL_BIT:
                 return VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
         }
-
         return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 
@@ -160,18 +159,26 @@ namespace qz::gfx {
             vkDestroyFramebuffer(context.device, framebuffer, nullptr);
         }
         if (render_pass._handle) {
-            vkDestroyRenderPass(context.device,render_pass. _handle, nullptr);
+            vkDestroyRenderPass(context.device, render_pass._handle, nullptr);
         }
         render_pass = {};
+    }
+
+    qz_nodiscard const Image& RenderPass::image(std::size_t idx) const noexcept {
+        return attachment(idx).image;
     }
 
     qz_nodiscard const Image& RenderPass::image(std::string_view name) const noexcept {
         return attachment(name).image;
     }
 
+    qz_nodiscard const Attachment& RenderPass::attachment(std::size_t idx) const noexcept {
+        return _attachments[idx];
+    }
+
     qz_nodiscard const Attachment& RenderPass::attachment(std::string_view name) const noexcept {
         for (const auto& attachment : _attachments) {
-            if (attachment.name == name) {
+            qz_likely_if(attachment.name == name) {
                 return attachment;
             }
         }

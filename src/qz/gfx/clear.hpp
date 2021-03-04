@@ -20,7 +20,7 @@ namespace qz::gfx {
 
     struct ClearDepth {
         constexpr ClearDepth() noexcept : value() {}
-        constexpr ClearDepth(const float depth, const std::uint32_t stencil) noexcept : value{ depth, stencil } {}
+        constexpr ClearDepth(float depth, std::uint32_t stencil) noexcept : value{ depth, stencil } {}
 
         VkClearDepthStencilValue value;
     };

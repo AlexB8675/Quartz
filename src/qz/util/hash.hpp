@@ -22,18 +22,15 @@ namespace qz::util {
 } // namespace qz::util
 
 namespace std {
-    template <typename Ty>
-    struct hash<vector<Ty>> {
-        qz_nodiscard size_t operator ()(const vector<Ty>& vec) const noexcept {
-            size_t result = 0;
-            for (const auto& each : vec) {
-                result = qz::util::hash(result, each);
-            }
-            return result;
-        }
-    };
-
     qz_make_hashable(qz::gfx::DescriptorBinding, dynamic, name, index, count, type, stage);
     qz_make_hashable(VkDescriptorImageInfo, sampler, imageView, imageLayout);
     qz_make_hashable(qz::meta::Vertex, position, normals, uvs, tangents, bitangents);
+    template <typename T>
+    qz_make_hashable_pred(vector<T>, value, [&]() {
+        size_t result = 0;
+        for (const auto& each : value) {
+            result = qz::util::hash(result, each);
+        }
+        return result;
+    });
 } // namespace std

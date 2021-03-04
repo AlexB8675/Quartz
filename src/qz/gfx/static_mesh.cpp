@@ -105,16 +105,16 @@ namespace qz::gfx {
                 qz_vulkan_check(vkCreateFence(context.device, &fence_create_info, nullptr, &request_done));
                 context.graphics->submit(ownership_cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, transfer_done, nullptr, request_done);
                 vkWaitForFences(context.device, 1, &request_done, true, -1);
-                assets::finalize(task_data->result, {
-                    geometry,
-                    indices
-                });
                 vkDestroySemaphore(context.device, transfer_done, nullptr);
                 vkDestroyFence(context.device, request_done, nullptr);
                 StaticBuffer::destroy(context, vertex_staging);
                 StaticBuffer::destroy(context, index_staging);
                 CommandBuffer::destroy(context, ownership_cmd);
                 CommandBuffer::destroy(context, transfer_cmd);
+                assets::finalize(task_data->result, {
+                    geometry,
+                    indices
+                });
                 delete task_data;
             },
             .ArgData = new TaskData<StaticMesh>{

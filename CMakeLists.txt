@@ -70,7 +70,6 @@ add_executable(quartz
     src/qz/gfx/static_model.hpp
     src/qz/gfx/static_texture.cpp
     src/qz/gfx/static_texture.hpp
-    src/qz/gfx/stb_image.cpp
     src/qz/gfx/task_manager.cpp
     src/qz/gfx/task_manager.hpp
     src/qz/gfx/swapchain.cpp
